@@ -7,4 +7,8 @@ endif()
 
 project ("Homework")
 
+# ege
+add_subdirectory ("3rd-Party/xege")
+include_directories ("3rd-Party/xege/include")
+
 add_subdirectory ("Homework")

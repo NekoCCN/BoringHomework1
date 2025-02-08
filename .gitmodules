@@ -1,0 +1,3 @@
+[submodule "3rd-Party/xege"]
+	path = 3rd-Party/xege
+	url = https://github.com/wysaid/xege.git
