@@ -1,26 +1,24 @@
-﻿#include <graphics.h>
+﻿#include <clocale>
+#include <graphics.h>
 #include <windows.h>
 #include "Widget/Buttom/Buttom.h"
+#include "Widget/ListButtom/ListButtom.h"
+#include "UI/Sidebar/Sidebar.h"
+#include "Data/StringSkipList/StringSkipList.h"
 #include "Tools/Tools.h"
-
-Button* g_button = NULL;
 
 int main()
 {
-    initgraph(640, 480, INIT_RENDERMANUAL);
+    setlocale(LC_ALL, "");
+
+    const int WIDTH = 1140;
+    const int HEIGHT = 640;
+
+    initgraph(WIDTH, HEIGHT, INIT_RENDERMANUAL);
 
     setfont(16, 0, "Arial");
 
-    g_button = Button_create(100, 50, 200, 75, "Button",
-        hexToColorref("#00BFFF"), hexToColorref("#00FFFF"), hexToColorref("#008B8B"), 10);
-    
-    if (g_button == NULL)
-    {
-        closegraph();
-        return 1;
-    }
-
-    Button_draw(g_button);
+    Sidebar* g_sidebar = SIDEBAR_createGraySidebar(0, 0, WIDTH / 7, HEIGHT);
 
     while (is_run())
     {
@@ -30,23 +28,32 @@ int main()
 
             if (msg.is_move())
             {
-                Button_handleMouseMove(g_button, msg.x, msg.y);
+                SIDEBAR_handleMouseMove(g_sidebar, msg.x, msg.y);
             }
-            else if (msg.is_left())
+            else if (msg.is_down())
             {
-                Button_handleButtonDown(g_button, msg.x, msg.y);
+                SIDEBAR_handleButtonDown(g_sidebar, msg.x, msg.y);
             }
+        }
+
+        if (SIDEBAR_isExit(g_sidebar))
+        {
+            break;
         }
          
         setbkcolor(RGB(255, 255, 255));
         cleardevice();
 
-        Button_draw(g_button);
+        SIDEBAR_draw(g_sidebar);
+        //BUTTON_draw(g_button);
+        //LISTBUTTON_draw(g_list_button);
 
         delay_fps(60);
     }
 
-    Button_destroy(g_button);
+    SIDEBAR_destroy(g_sidebar);
+
     closegraph();
+
     return 0;
 }

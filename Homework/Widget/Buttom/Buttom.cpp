@@ -1,17 +1,30 @@
 #include "Buttom.h"
+#include "../../Tools/Tools.h"
 
-Button* Button_createCyanButton(int left, int top, int right, int bottom, const char* text, int radius)
+Button* BUTTON_createCyanButton(int left, int top, int right, int bottom, const char* text, int radius)
 {
-    return Button_create(left, top, right, bottom, text, RGB(0, 191, 255), RGB(0, 255, 255),
-        RGB(0, 139, 139), radius);
+    return BUTTON_create(left, top, right, bottom, text, hexToColorref("#4fc3f7"), hexToColorref("#039be5"),
+        hexToColorref("#01579b"), BLACK,
+        false, WHITE, radius);
 }
 
-void Button_draw(Button* self)
+void BUTTON_draw(Button* self)
 {
+    // 渲染填充色
     setfillcolor(self->current_color_);
     fillroundrect(self->rect_.left, self->rect_.top, self->rect_.right, self->rect_.bottom, 10, 10);
-    setcolor(WHITE);
-    roundrect(self->rect_.left, self->rect_.top, self->rect_.right, self->rect_.bottom, 10, 10);
+
+    // 渲染边框
+    if (self->have_frame_)
+    {
+        setcolor(self->frame_color_);
+        roundrect(self->rect_.left, self->rect_.top, self->rect_.right, self->rect_.bottom, 10, 10);
+    }
+    else
+    {
+        setcolor(self->current_color_);
+        roundrect(self->rect_.left, self->rect_.top, self->rect_.right, self->rect_.bottom, 10, 10);
+    }
 
     int text_width = textwidth(self->text_);
     int text_height = textheight(self->text_);
@@ -20,7 +33,8 @@ void Button_draw(Button* self)
     int text_x = self->rect_.left + (self->rect_.right - self->rect_.left - text_width) / 2;
     int text_y = self->rect_.top + (self->rect_.bottom - self->rect_.top - text_height) / 2;
 
-    setcolor(WHITE);
+    // 字体颜色
+    setcolor(self->font_color_);
 
     // 更改透明混合模式 否则字体周围会有黑色边框
     setbkmode(TRANSPARENT);
@@ -28,7 +42,7 @@ void Button_draw(Button* self)
     outtextxy(text_x, text_y, self->text_);
 }
 
-void Button_animateColor(Button* self, COLORREF startColor, COLORREF endColor)
+void BUTTON_animateColor(Button* self, COLORREF startColor, COLORREF endColor)
 {
     float rStart = GetRValue(startColor);
     float gStart = GetGValue(startColor);
@@ -49,12 +63,23 @@ void Button_animateColor(Button* self, COLORREF startColor, COLORREF endColor)
 
         self->current_color_ = RGB(r, g, b);
 
-        Button_draw(self);
+        BUTTON_draw(self);
         Sleep(self->delayTime_);
     }
 }
 
-void Button_handleMouseMove(Button* self, int x, int y)
+bool button_isClicked(Button* self)
+{
+    if (self->is_clicked_)
+    {
+        self->is_clicked_ = false;
+        return true;
+    }
+
+    return false;
+}
+
+void BUTTON_handleMouseMove(Button* self, int x, int y)
 {
     POINT pt = { x, y };
 
@@ -63,7 +88,7 @@ void Button_handleMouseMove(Button* self, int x, int y)
         if (!self->is_mouse_inside_)
         {
             self->is_mouse_inside_ = true;
-            Button_animateColor(self, self->normal_color_, self->hover_color_);
+            BUTTON_animateColor(self, self->normal_color_, self->hover_color_);
         }
     }
     else
@@ -71,40 +96,31 @@ void Button_handleMouseMove(Button* self, int x, int y)
         if (self->is_mouse_inside_)
         {
             self->is_mouse_inside_ = false;
-            Button_animateColor(self, self->hover_color_, self->normal_color_);
+            BUTTON_animateColor(self, self->hover_color_, self->normal_color_);
         }
     }
 }
 
-void Button_handleButtonDown(Button* self, int x, int y)
+void BUTTON_handleButtonDown(Button* self, int x, int y)
 {
     POINT pt = { x, y };
 
     if (PtInRect(&self->rect_, pt))
     {
-        self->current_color_ = self->click_color_;
+        self->is_clicked_ = true;
 
-        GetCursorPos(&pt);
-        ScreenToClient(self->hwnd_, &pt);
-        if (PtInRect(&self->rect_, pt))
-        {
-            Button_animateColor(self, self->click_color_, self->hover_color_);
-        }
-        else
-        {
-            Button_animateColor(self, self->click_color_, self->normal_color_);
-        }
+        BUTTON_animateColor(self, self->click_color_, self->hover_color_);
     }
-    Sleep(self->delayTime_);
 }
 
-void Button_destroy(Button* self)
+void BUTTON_destroy(Button* self)
 {
     free(self);
 }
 
-Button* Button_create(int left, int top, int right, int bottom, const char* text,
-    COLORREF normal_color, COLORREF hover_color, COLORREF click_color, int radius)
+Button* BUTTON_create(int left, int top, int right, int bottom, const char* text,
+    COLORREF normal_color, COLORREF hover_color, COLORREF click_color,
+    COLORREF font_color, bool have_frame, COLORREF frame_color, int radius)
 {
     Button* button = (Button*)malloc(sizeof(Button));
 
@@ -124,6 +140,10 @@ Button* Button_create(int left, int top, int right, int bottom, const char* text
     button->click_color_ = click_color;
     button->current_color_ = button->normal_color_;
 
+    button->font_color_ = font_color;
+    button->have_frame_ = have_frame;
+    button->frame_color_ = frame_color;
+
     button->radius_ = radius;
 
     button->text_ = text;
@@ -133,8 +153,6 @@ Button* Button_create(int left, int top, int right, int bottom, const char* text
 
     button->is_mouse_inside_ = false;
     button->is_clicked_ = false;
-
-    button->hwnd_ = getHWnd();
 
     return button;
 }
