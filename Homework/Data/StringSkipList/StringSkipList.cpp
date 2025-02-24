@@ -1,8 +1,7 @@
 #include "StringSkipList.h"
 #include <stdint.h>
 
-// 几何分布
-static int STRINGSKIPLIST_PRIVATE_RandomLevel(StringSkipList* self)
+static int STRINGSKIPLIST_private_randomLevel(StringSkipList* self)
 {
     int level = 1;
     while ((float)rand() / RAND_MAX < self->probability_ && level < self->max_level_)
@@ -12,8 +11,7 @@ static int STRINGSKIPLIST_PRIVATE_RandomLevel(StringSkipList* self)
     return level;
 }
 
-// 创建节点（现在直接复制 BaseData 结构体）
-static SkipListNode* STRINGSKIPLIST_PRIVATE_CreateNode(const wchar_t* key, const BaseData* value, int level)
+static SkipListNode* STRINGSKIPLIST_private_createNode(const wchar_t* key, const BaseData* value, int level)
 {
     SkipListNode* newNode = (SkipListNode*)malloc(sizeof(SkipListNode));
     if (newNode == NULL)
@@ -44,16 +42,20 @@ static SkipListNode* STRINGSKIPLIST_PRIVATE_CreateNode(const wchar_t* key, const
 
     newNode->level = level;
 
-    // 复制BaseData结构体
     if (value != NULL)
     {
-        newNode->value = *value;
+        wcscpy(newNode->value.course, value->course);
+        newNode->value.daily_score = value->daily_score;
+        newNode->value.daily_score_ratio = value->daily_score_ratio;
+        newNode->value.final_score = value->final_score;
+        newNode->value.id = value->id;
+        newNode->value.score = value->score;
     }
 
     return newNode;
 }
 
-static void STRINGSKIPLIST_PRIVATE_FreeNode(SkipListNode* node)
+static void STRINGSKIPLIST_private_freeNode(SkipListNode* node)
 {
     if (node)
     {
@@ -63,7 +65,7 @@ static void STRINGSKIPLIST_PRIVATE_FreeNode(SkipListNode* node)
     }
 }
 
-StringSkipList* STRINGSKIPLIST_Construct(int max_level, float probability)
+StringSkipList* STRINGSKIPLIST_construct(int max_level, float probability)
 {
     StringSkipList* self = (StringSkipList*)malloc(sizeof(StringSkipList));
     if (self == NULL)
@@ -74,7 +76,7 @@ StringSkipList* STRINGSKIPLIST_Construct(int max_level, float probability)
     self->max_level_ = max_level;
     self->probability_ = probability;
     self->current_level_ = 1;
-    self->header = STRINGSKIPLIST_PRIVATE_CreateNode(L"", NULL, max_level);
+    self->header = STRINGSKIPLIST_private_createNode(L"", NULL, max_level);
     if (self->header == NULL)
     {
         free(self);
@@ -83,7 +85,7 @@ StringSkipList* STRINGSKIPLIST_Construct(int max_level, float probability)
     return self;
 }
 
-void STRINGSKIPLIST_Destruct(StringSkipList* self)
+void STRINGSKIPLIST_destruct(StringSkipList* self)
 {
     if (!self) return;
     SkipListNode* current = self->header;
@@ -92,14 +94,13 @@ void STRINGSKIPLIST_Destruct(StringSkipList* self)
     while (current)
     {
         next = current->forward[0];
-        STRINGSKIPLIST_PRIVATE_FreeNode(current);
+        STRINGSKIPLIST_private_freeNode(current);
         current = next;
     }
-
     free(self);
 }
 
-StringSkipListResult STRINGSKIPLIST_InsertW(StringSkipList* self, const wchar_t* wstr, const BaseData* value)
+StringSkipListResult STRINGSKIPLIST_insertW(StringSkipList* self, const wchar_t* wstr, BaseData* value)
 {
     if (self == NULL || wstr == NULL)
     {
@@ -112,6 +113,8 @@ StringSkipListResult STRINGSKIPLIST_InsertW(StringSkipList* self, const wchar_t*
     {
         return STRINGSKIPLIST_ERROR_MEMORY_ALLOCATION;
     }
+
+    value->score = value->daily_score * value->daily_score_ratio + value->final_score * (1 - value->daily_score_ratio);
 
     for (int i = 0; i < self->max_level_; ++i)
     {
@@ -131,7 +134,7 @@ StringSkipListResult STRINGSKIPLIST_InsertW(StringSkipList* self, const wchar_t*
 
     if (current == NULL || wcscmp(current->key, wstr) != 0)
     {
-        int newLevel = STRINGSKIPLIST_PRIVATE_RandomLevel(self);
+        int newLevel = STRINGSKIPLIST_private_randomLevel(self);
 
         if (newLevel > self->current_level_)
         {
@@ -142,7 +145,7 @@ StringSkipListResult STRINGSKIPLIST_InsertW(StringSkipList* self, const wchar_t*
             self->current_level_ = newLevel;
         }
 
-        SkipListNode* newNode = STRINGSKIPLIST_PRIVATE_CreateNode(wstr, value, newLevel);
+        SkipListNode* newNode = STRINGSKIPLIST_private_createNode(wstr, value, newLevel);
         if (newNode == NULL)
         {
             free(update);
@@ -159,7 +162,7 @@ StringSkipListResult STRINGSKIPLIST_InsertW(StringSkipList* self, const wchar_t*
     return STRINGSKIPLIST_SUCCESS;
 }
 
-StringSkipListResult STRINGSKIPLIST_Insert(StringSkipList* self, const char* str, const BaseData* value)
+StringSkipListResult STRINGSKIPLIST_insert(StringSkipList* self, const char* str, BaseData* value)
 {
     if (self == NULL || str == NULL)
     {
@@ -178,20 +181,22 @@ StringSkipListResult STRINGSKIPLIST_Insert(StringSkipList* self, const char* str
     }
 
     mbstowcs(wstr, str, wide_size + 1);
-    StringSkipListResult result = STRINGSKIPLIST_InsertW(self, wstr, value);
+    StringSkipListResult result = STRINGSKIPLIST_insertW(self, wstr, value);
     free(wstr);
     return result;
 }
 
-bool STRINGSKIPLIST_SearchW(StringSkipList* self, const wchar_t* wstr, BaseData* value)
+bool STRINGSKIPLIST_searchW(StringSkipList* self, const wchar_t* wstr, SearchResult* value)
 {
-    if (self == NULL || wstr == NULL || value == NULL) {
+    if (self == NULL || wstr == NULL || value == NULL)
+    {
         return false;
     }
 
     SkipListNode* current = self->header;
 
-    for (int i = self->current_level_ - 1; i >= 0; i--) {
+    for (int i = self->current_level_ - 1; i >= 0; i--)
+    {
         while (current->forward[i] && wcscmp(current->forward[i]->key, wstr) < 0)
         {
             current = current->forward[i];
@@ -202,14 +207,18 @@ bool STRINGSKIPLIST_SearchW(StringSkipList* self, const wchar_t* wstr, BaseData*
 
     if (current && wcscmp(current->key, wstr) == 0)
     {
-        *value = current->value;
+        value->value = current->value;
+        value->key = (wchar_t*)malloc(sizeof(wchar_t) * wcslen(current->key));
+        wcscpy(value->key, current->key);
         return true;
     }
+
+
 
     return false;
 }
 
-bool STRINGSKIPLIST_Search(StringSkipList* self, const char* str, BaseData* value)
+bool STRINGSKIPLIST_search(StringSkipList* self, const char* str, SearchResult* value)
 {
     if (self == NULL || str == NULL || value == NULL)
     {
@@ -226,14 +235,15 @@ bool STRINGSKIPLIST_Search(StringSkipList* self, const char* str, BaseData* valu
         return false;
     }
     mbstowcs(wstr, str, wide_size + 1);
-    bool result = STRINGSKIPLIST_SearchW(self, wstr, value);
+    bool result = STRINGSKIPLIST_searchW(self, wstr, value);
     free(wstr);
     return result;
 }
 
-SearchResult* STRINGSKIPLIST_PrefixSearchW(StringSkipList* self, const wchar_t* prefix, int* count)
+SearchResult* STRINGSKIPLIST_prefixSearchW(StringSkipList* self, const wchar_t* prefix, int* count)
 {
-    if (self == NULL || prefix == NULL || count == NULL) {
+    if (self == NULL || prefix == NULL || count == NULL)
+    {
         return NULL;
     }
 
@@ -257,15 +267,11 @@ SearchResult* STRINGSKIPLIST_PrefixSearchW(StringSkipList* self, const wchar_t* 
         SearchResult* temp = (SearchResult*)realloc(results, sizeof(SearchResult) * (*count));
         if (temp == NULL)
         {
-            // 内存分配失败，释放之前分配的内存
-            if (results != NULL)
+            for (int i = 0; i < *count - 1; i++)
             {
-                for (int i = 0; i < *count - 1; i++)
-                {
-                    free(results[i].key);
-                }
-                free(results);
+                free(results[i].key);
             }
+            free(results);
             *count = 0;
             return NULL;
         }
@@ -274,7 +280,6 @@ SearchResult* STRINGSKIPLIST_PrefixSearchW(StringSkipList* self, const wchar_t* 
         results[*count - 1].key = (wchar_t*)malloc(sizeof(wchar_t) * (wcslen(current->key) + 1));
         if (results[*count - 1].key == NULL)
         {
-            // 内存分配失败，释放之前分配的内存
             for (int i = 0; i < *count - 1; i++)
             {
                 free(results[i].key);
@@ -284,7 +289,7 @@ SearchResult* STRINGSKIPLIST_PrefixSearchW(StringSkipList* self, const wchar_t* 
             return NULL;
         }
         wcscpy(results[*count - 1].key, current->key);
-        results[*count - 1].value = current->value; // 复制 BaseData
+        results[*count - 1].value = current->value;
 
         current = current->forward[0];
     }
@@ -292,7 +297,7 @@ SearchResult* STRINGSKIPLIST_PrefixSearchW(StringSkipList* self, const wchar_t* 
     return results;
 }
 
-SearchResult* STRINGSKIPLIST_PrefixSearch(StringSkipList* self, const char* prefix, int* count)
+SearchResult* STRINGSKIPLIST_prefixSearch(StringSkipList* self, const char* prefix, int* count)
 {
     if (self == NULL || prefix == NULL || count == NULL)
     {
@@ -311,12 +316,12 @@ SearchResult* STRINGSKIPLIST_PrefixSearch(StringSkipList* self, const char* pref
     }
 
     mbstowcs(wprefix, prefix, wide_size + 1);
-    SearchResult* result = STRINGSKIPLIST_PrefixSearchW(self, wprefix, count);
+    SearchResult* result = STRINGSKIPLIST_prefixSearchW(self, wprefix, count);
     free(wprefix);
     return result;
 }
 
-void STRINGSKIPLIST_PrintList(StringSkipList* self)
+void STRINGSKIPLIST_printList(StringSkipList* self)
 {
     if (!self) return;
 
@@ -327,7 +332,6 @@ void STRINGSKIPLIST_PrintList(StringSkipList* self)
         while (current)
         {
             wprintf(L"%ls ", current->key);
-            // 如果需要，可以在这里打印 BaseData 的内容
             current = current->forward[i];
         }
         wprintf(L"\n");
@@ -335,7 +339,7 @@ void STRINGSKIPLIST_PrintList(StringSkipList* self)
     fflush(stdout);
 }
 
-void STRINGSKIPLIST_SerializeSimple(StringSkipList* self, const char* filename)
+void STRINGSKIPLIST_serializeSimple(StringSkipList* self, const char* filename)
 {
     if (!self || !filename) return;
 
@@ -343,13 +347,13 @@ void STRINGSKIPLIST_SerializeSimple(StringSkipList* self, const char* filename)
     if (!file)
     {
         perror("Failed to open file for writing");
-        return; //或者返回错误码
+        return;
     }
 
-    uint32_t magic_number = 0x2333F; // 'SKIP'
+    uint32_t magic_number = 0x2333F;
     fwrite(&magic_number, sizeof(uint32_t), 1, file);
     fwrite(&self->max_level_, sizeof(int), 1, file);
-    fwrite(&self->probability_, sizeof(float), 1, file); //写入概率
+    fwrite(&self->probability_, sizeof(float), 1, file);
 
     int nodeCount = 0;
     SkipListNode* current = self->header->forward[0];
@@ -363,7 +367,6 @@ void STRINGSKIPLIST_SerializeSimple(StringSkipList* self, const char* filename)
     current = self->header->forward[0];
     while (current)
     {
-        // 将宽字符串转换为 UTF-8
         char* utf8Key = NULL;
         size_t utf8KeyLength = 0;
 
@@ -385,7 +388,7 @@ void STRINGSKIPLIST_SerializeSimple(StringSkipList* self, const char* filename)
 
         fwrite(&keyLength, sizeof(uint32_t), 1, file);
         fwrite(utf8Key, sizeof(char), keyLength, file);
-        fwrite(&current->value, sizeof(BaseData), 1, file); // 写入BaseData
+        fwrite(&current->value, sizeof(BaseData), 1, file);
 
         free(utf8Key);
 
@@ -395,7 +398,7 @@ void STRINGSKIPLIST_SerializeSimple(StringSkipList* self, const char* filename)
     fclose(file);
 }
 
-StringSkipList* STRINGSKIPLIST_DeserializeSimple(const char* filename)
+StringSkipList* STRINGSKIPLIST_deserializeSimple(const char* filename)
 {
     if (!filename) return NULL;
     FILE* file = fopen(filename, "rb");
@@ -424,7 +427,7 @@ StringSkipList* STRINGSKIPLIST_DeserializeSimple(const char* filename)
     }
 
     float probability_;
-    if (fread(&probability_, sizeof(float), 1, file) != 1) //读取概率
+    if (fread(&probability_, sizeof(float), 1, file) != 1)
     {
         fclose(file);
         return NULL;
@@ -437,19 +440,18 @@ StringSkipList* STRINGSKIPLIST_DeserializeSimple(const char* filename)
         return NULL;
     }
 
-    StringSkipList* self = STRINGSKIPLIST_Construct(max_level_, probability_);
+    StringSkipList* self = STRINGSKIPLIST_construct(max_level_, probability_);
     if (!self) {
         fclose(file);
         return NULL;
     }
 
-    // 读取节点数据并插入跳表
     for (int i = 0; i < nodeCount; i++)
     {
         uint32_t keyLength;
         if (fread(&keyLength, sizeof(uint32_t), 1, file) != 1)
         {
-            STRINGSKIPLIST_Destruct(self);
+            STRINGSKIPLIST_destruct(self);
             fclose(file);
             return NULL;
         }
@@ -457,7 +459,7 @@ StringSkipList* STRINGSKIPLIST_DeserializeSimple(const char* filename)
         char* utf8Key = (char*)malloc(keyLength + 1);
         if (utf8Key == NULL)
         {
-            STRINGSKIPLIST_Destruct(self);
+            STRINGSKIPLIST_destruct(self);
             fclose(file);
             return NULL;
         }
@@ -465,29 +467,27 @@ StringSkipList* STRINGSKIPLIST_DeserializeSimple(const char* filename)
         if (fread(utf8Key, sizeof(char), keyLength, file) != keyLength)
         {
             free(utf8Key);
-            STRINGSKIPLIST_Destruct(self);
+            STRINGSKIPLIST_destruct(self);
             fclose(file);
             return NULL;
         }
-        utf8Key[keyLength] = '\0'; // 确保 null 终止
+        utf8Key[keyLength] = '\0';
 
         BaseData value;
-        if (fread(&value, sizeof(BaseData), 1, file) != 1) //读取BaseData
+        if (fread(&value, sizeof(BaseData), 1, file) != 1)
         {
             free(utf8Key);
-            STRINGSKIPLIST_Destruct(self);
+            STRINGSKIPLIST_destruct(self);
             fclose(file);
             return NULL;
         }
 
-
-        // 将 UTF-8 转换为宽字符串
         wchar_t* wstr = NULL;
         size_t wide_size = mbstowcs(NULL, utf8Key, 0);
         if (wide_size == (size_t)-1)
         {
             free(utf8Key);
-            STRINGSKIPLIST_Destruct(self);
+            STRINGSKIPLIST_destruct(self);
             fclose(file);
             return NULL;
         }
@@ -496,17 +496,17 @@ StringSkipList* STRINGSKIPLIST_DeserializeSimple(const char* filename)
         if (wstr == NULL)
         {
             free(utf8Key);
-            STRINGSKIPLIST_Destruct(self);
+            STRINGSKIPLIST_destruct(self);
             fclose(file);
             return NULL;
         }
         mbstowcs(wstr, utf8Key, wide_size + 1);
 
-        if (STRINGSKIPLIST_InsertW(self, wstr, &value) != STRINGSKIPLIST_SUCCESS) //插入
+        if (STRINGSKIPLIST_insertW(self, wstr, &value) != STRINGSKIPLIST_SUCCESS)
         {
             free(wstr);
             free(utf8Key);
-            STRINGSKIPLIST_Destruct(self);
+            STRINGSKIPLIST_destruct(self);
             fclose(file);
             return NULL;
         }
@@ -518,7 +518,7 @@ StringSkipList* STRINGSKIPLIST_DeserializeSimple(const char* filename)
     return self;
 }
 
-StringSkipListResult STRINGSKIPLIST_DeleteW(StringSkipList* self, const wchar_t* wstr)
+StringSkipListResult STRINGSKIPLIST_deleteW(StringSkipList* self, const wchar_t* wstr)
 {
     if (self == NULL || wstr == NULL)
     {
@@ -536,7 +536,6 @@ StringSkipListResult STRINGSKIPLIST_DeleteW(StringSkipList* self, const wchar_t*
         update[i] = NULL;
     }
 
-    // 从最高层向下查找要删除的节点
     for (int i = self->current_level_ - 1; i >= 0; i--)
     {
         while (current->forward[i] && wcscmp(current->forward[i]->key, wstr) < 0)
@@ -559,7 +558,7 @@ StringSkipListResult STRINGSKIPLIST_DeleteW(StringSkipList* self, const wchar_t*
             update[i]->forward[i] = current->forward[i];
         }
 
-        STRINGSKIPLIST_PRIVATE_FreeNode(current);
+        STRINGSKIPLIST_private_freeNode(current);
 
         while (self->current_level_ > 1 && self->header->forward[self->current_level_ - 1] == NULL)
         {
@@ -571,10 +570,10 @@ StringSkipListResult STRINGSKIPLIST_DeleteW(StringSkipList* self, const wchar_t*
     }
 
     free(update);
-    return STRINGSKIPLIST_ERROR_NOT_FOUND; // 未找到
+    return STRINGSKIPLIST_ERROR_NOT_FOUND;
 }
-// 删除单个节点 (UTF-8)
-StringSkipListResult STRINGSKIPLIST_Delete(StringSkipList* self, const char* str)
+
+StringSkipListResult STRINGSKIPLIST_delete(StringSkipList* self, const char* str)
 {
     if (self == NULL || str == NULL)
     {
@@ -594,31 +593,29 @@ StringSkipListResult STRINGSKIPLIST_Delete(StringSkipList* self, const char* str
     }
 
     mbstowcs(wstr, str, wide_size + 1);
-    StringSkipListResult result = STRINGSKIPLIST_DeleteW(self, wstr);
+    StringSkipListResult result = STRINGSKIPLIST_deleteW(self, wstr);
     free(wstr);
     return result;
 }
 
-// 返回删除的节点数量
-int STRINGSKIPLIST_DeletePrefixW(StringSkipList* self, const wchar_t* prefix)
+int STRINGSKIPLIST_deletePrefixW(StringSkipList* self, const wchar_t* prefix)
 {
     if (self == NULL || prefix == NULL)
     {
-        return 0; // 或者返回错误码
+        return 0;
     }
 
     SkipListNode* current = self->header;
     SkipListNode** update = (SkipListNode**)malloc(sizeof(SkipListNode*) * self->max_level_);
     if (update == NULL)
     {
-        return 0; // 内存分配错误, 或者返回错误码.
+        return 0;
     }
 
     for (int i = 0; i < self->max_level_; i++) {
         update[i] = NULL;
     }
 
-    // 从最高层向下查找
     for (int i = self->current_level_ - 1; i >= 0; i--)
     {
         while (current->forward[i] && wcscmp(current->forward[i]->key, prefix) < 0)
@@ -633,7 +630,6 @@ int STRINGSKIPLIST_DeletePrefixW(StringSkipList* self, const wchar_t* prefix)
     while (current && wcsncmp(current->key, prefix, wcslen(prefix)) == 0)
     {
         SkipListNode* toDelete = current;
-        // 所有层级上，把 "指向 toDelete" 的指针 指向 "toDelete 的下一个"
         for (int i = 0; i < toDelete->level; i++)
         {
             if (update[i]->forward[i] != toDelete)
@@ -643,11 +639,10 @@ int STRINGSKIPLIST_DeletePrefixW(StringSkipList* self, const wchar_t* prefix)
             update[i]->forward[i] = toDelete->forward[i];
         }
 
-        current = current->forward[0]; // 移动到下一个节点 (循环)
-        STRINGSKIPLIST_PRIVATE_FreeNode(toDelete);  // 释放节点
+        current = current->forward[0];
+        STRINGSKIPLIST_private_freeNode(toDelete);
         deletedCount++;
 
-        // 更新跳表的层级
         while (self->current_level_ > 1 && self->header->forward[self->current_level_ - 1] == NULL)
         {
             self->current_level_--;
@@ -658,33 +653,32 @@ int STRINGSKIPLIST_DeletePrefixW(StringSkipList* self, const wchar_t* prefix)
     return deletedCount;
 }
 
-// 返回删除的数量
-int STRINGSKIPLIST_DeletePrefix(StringSkipList* self, const char* prefix)
+int STRINGSKIPLIST_deletePrefix(StringSkipList* self, const char* prefix)
 {
 
     if (self == NULL || prefix == NULL)
     {
-        return 0; //或者返回错误码
+        return 0;
     }
     size_t wide_size = mbstowcs(NULL, prefix, 0);
     if (wide_size == (size_t)-1)
     {
-        return 0; // 或者返回错误码
+        return 0;
     }
 
     wchar_t* wprefix = (wchar_t*)malloc(sizeof(wchar_t) * (wide_size + 1));
     if (wprefix == NULL)
     {
-        return 0; //内存分配失败
+        return 0;
     }
 
     mbstowcs(wprefix, prefix, wide_size + 1);
-    int count = STRINGSKIPLIST_DeletePrefixW(self, wprefix);
+    int count = STRINGSKIPLIST_deletePrefixW(self, wprefix);
     free(wprefix);
     return count;
 }
 
-StringSkipListIterator STRINGSKIPLIST_IteratorBegin(StringSkipList* self)
+StringSkipListIterator STRINGSKIPLIST_iteratorBegin(StringSkipList* self)
 {
     StringSkipListIterator iterator;
     if (self)
@@ -693,12 +687,12 @@ StringSkipListIterator STRINGSKIPLIST_IteratorBegin(StringSkipList* self)
     }
     else
     {
-        iterator.current = NULL; // 空跳表
+        iterator.current = NULL;
     }
     return iterator;
 }
 
-SkipListNode* STRINGSKIPLIST_IteratorNext(StringSkipListIterator* iterator)
+SkipListNode* STRINGSKIPLIST_iteratorNext(StringSkipListIterator* iterator)
 {
     if (iterator && iterator->current)
     {
@@ -707,12 +701,12 @@ SkipListNode* STRINGSKIPLIST_IteratorNext(StringSkipListIterator* iterator)
     return iterator->current;
 }
 
-bool STRINGSKIPLIST_IteratorEnd(const StringSkipListIterator* iterator)
+bool STRINGSKIPLIST_iteratorEnd(const StringSkipListIterator* iterator)
 {
     return (iterator == NULL || iterator->current == NULL);
 }
 
-const wchar_t* STRINGSKIPLIST_IteratorGetKey(const StringSkipListIterator* iterator)
+wchar_t* STRINGSKIPLIST_iteratorGetKey(const StringSkipListIterator* iterator)
 {
     if (iterator && iterator->current)
     {
@@ -721,11 +715,68 @@ const wchar_t* STRINGSKIPLIST_IteratorGetKey(const StringSkipListIterator* itera
     return NULL;
 }
 
-const BaseData* STRINGSKIPLIST_IteratorGetValue(const StringSkipListIterator* iterator)
+const BaseData* STRINGSKIPLIST_iteratorGetValue(const StringSkipListIterator* iterator)
 {
     if (iterator && iterator->current)
     {
         return &(iterator->current->value);
     }
     return NULL;
+}
+
+SearchResult STRINGSKIPLIST_iteratorGetResult(const StringSkipListIterator* iterator)
+{
+    return { iterator->current->key, iterator->current->value };
+}
+
+SearchResult* STRINGSKIPLIST_getAll(StringSkipList* self, int* count)
+{
+    if (self == NULL || count == NULL)
+    {
+        return NULL;
+    }
+
+    *count = 0;
+    SearchResult* results = NULL;
+    SkipListNode* current = self->header->forward[0]; // 从第一个实际数据节点开始
+
+    while (current != NULL)
+    {
+        (*count)++;
+        SearchResult* temp = (SearchResult*)realloc(results, sizeof(SearchResult) * (*count));
+        if (temp == NULL) 
+        {
+            if (results != NULL)
+            {
+                for (int i = 0; i < *count - 1; i++)
+                {
+                    free(results[i].key);
+                }
+                free(results);
+            }
+            *count = 0;
+            return NULL;
+        }
+        results = temp;
+
+        results[*count - 1].key = (wchar_t*)malloc(sizeof(wchar_t) * (wcslen(current->key) + 1));
+        if (results[*count - 1].key == NULL)
+        {
+            for (int i = 0; i < *count - 1; i++)
+            {
+                free(results[i].key);
+            }
+            free(results);
+            *count = 0;
+            return NULL;
+        }
+        wcscpy(results[*count - 1].key, current->key);
+
+        // 复制 value
+        results[*count - 1].value = current->value;
+
+        current = current->forward[0]; // 移动到下一个节点
+    }
+
+    return results;
 }

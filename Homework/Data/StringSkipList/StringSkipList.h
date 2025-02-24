@@ -1,6 +1,7 @@
 #pragma once
 #ifndef STRINGSKIPLIST_H
 #define STRINGSKIPLIST_H
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,9 +11,6 @@
 #include <locale.h>
 #include <time.h>
 #include "../BaseStruct/BaseStruct.h"
-
-// 仿C++面向对象的C风格跳表容器
-// 应该满足作业的C语言和链表这两个要求...吧。
 
 #define FIBONACCI_NUMBERS_MAX_LEVEL 32
 #define FIBONACCI_NUMBERS 0.61803398875
@@ -54,46 +52,49 @@ typedef struct StringSkipListIteratorStruct
     SkipListNode* current;
 } StringSkipListIterator;
 
-// 迭代器相关函数
-StringSkipListIterator STRINGSKIPLIST_IteratorBegin(StringSkipList* self);
+StringSkipListIterator STRINGSKIPLIST_iteratorBegin(StringSkipList* self);
 
-SkipListNode* STRINGSKIPLIST_IteratorNext(StringSkipListIterator* iterator);
+SkipListNode* STRINGSKIPLIST_iteratorNext(StringSkipListIterator* iterator);
 
-bool STRINGSKIPLIST_IteratorEnd(const StringSkipListIterator* iterator);
+bool STRINGSKIPLIST_iteratorEnd(const StringSkipListIterator* iterator);
 
-const wchar_t* STRINGSKIPLIST_IteratorGetKey(const StringSkipListIterator* iterator);
+wchar_t* STRINGSKIPLIST_iteratorGetKey(const StringSkipListIterator* iterator);
 
-const BaseData* STRINGSKIPLIST_IteratorGetValue(const StringSkipListIterator* iterator);
+const BaseData* STRINGSKIPLIST_iteratorGetValue(const StringSkipListIterator* iterator);
 
-// 跳表操作函数
-StringSkipList* STRINGSKIPLIST_Construct(int max_level, float probability);
 
-void STRINGSKIPLIST_Destruct(StringSkipList* self);
+StringSkipList* STRINGSKIPLIST_construct(int max_level, float probability);
 
-StringSkipListResult STRINGSKIPLIST_Insert(StringSkipList* self, const char* str, const BaseData* value);
+void STRINGSKIPLIST_destruct(StringSkipList* self);
 
-StringSkipListResult STRINGSKIPLIST_InsertW(StringSkipList* self, const wchar_t* wstr, const BaseData* value);
+StringSkipListResult STRINGSKIPLIST_insert(StringSkipList* self, const char* str, BaseData* value);
 
-bool STRINGSKIPLIST_Search(StringSkipList* self, const char* str, BaseData* value);
+StringSkipListResult STRINGSKIPLIST_insertW(StringSkipList* self, const wchar_t* wstr, BaseData* value);
 
-bool STRINGSKIPLIST_SearchW(StringSkipList* self, const wchar_t* wstr, BaseData* value);
+bool STRINGSKIPLIST_search(StringSkipList* self, const char* str, SearchResult* value);
 
-SearchResult* STRINGSKIPLIST_PrefixSearch(StringSkipList* self, const char* prefix, int* count);
+bool STRINGSKIPLIST_searchW(StringSkipList* self, const wchar_t* wstr, SearchResult* value);
 
-SearchResult* STRINGSKIPLIST_PrefixSearchW(StringSkipList* self, const wchar_t* prefix, int* count);
+SearchResult* STRINGSKIPLIST_prefixSearch(StringSkipList* self, const char* prefix, int* count);
 
-void STRINGSKIPLIST_PrintList(StringSkipList* self);
+SearchResult* STRINGSKIPLIST_prefixSearchW(StringSkipList* self, const wchar_t* prefix, int* count);
 
-void STRINGSKIPLIST_SerializeSimple(StringSkipList* self, const char* filename);
+void STRINGSKIPLIST_printList(StringSkipList* self);
 
-StringSkipList* STRINGSKIPLIST_DeserializeSimple(const char* filename);
+void STRINGSKIPLIST_serializeSimple(StringSkipList* self, const char* filename);
 
-StringSkipListResult STRINGSKIPLIST_DeleteW(StringSkipList* self, const wchar_t* wstr);
+StringSkipList* STRINGSKIPLIST_deserializeSimple(const char* filename);
 
-StringSkipListResult STRINGSKIPLIST_Delete(StringSkipList* self, const char* str);
+StringSkipListResult STRINGSKIPLIST_deleteW(StringSkipList* self, const wchar_t* wstr);
 
-int STRINGSKIPLIST_DeletePrefixW(StringSkipList* self, const wchar_t* prefix);
+StringSkipListResult STRINGSKIPLIST_delete(StringSkipList* self, const char* str);
 
-int STRINGSKIPLIST_DeletePrefix(StringSkipList* self, const char* prefix);
+int STRINGSKIPLIST_deletePrefixW(StringSkipList* self, const wchar_t* prefix);
+
+int STRINGSKIPLIST_deletePrefix(StringSkipList* self, const char* prefix);
+
+SearchResult* STRINGSKIPLIST_getAll(StringSkipList* self, int* count);
+
+SearchResult STRINGSKIPLIST_iteratorGetResult(const StringSkipListIterator* iterator);
 
 #endif // STRINGSKIPLIST_H

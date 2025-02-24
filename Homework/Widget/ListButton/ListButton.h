@@ -1,7 +1,6 @@
-// ListButtom.h
 #pragma once
-#ifndef LISTBUTTOM_H
-#define LISTBUTTOM_H
+#ifndef LISTBUTTON_H
+#define LISTBUTTON_H
 #include <graphics.h>
 #include "../../Tools/Tools.h"
 
