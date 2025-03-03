@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <algorithm>
 
-MaterialList* MATERIALLIST_create(int x, int y, int width, int height, int itemHeight, int padding,
-    color_t backgroundColor, color_t itemBackgroundColor,
-    color_t itemHoverColor, color_t selected_item_color, color_t scrollBarColor, color_t textColor)
+MaterialList* MATERIALLIST_create(int x, int y, int width, int height, int item_height_, int padding,
+    color_t background_color, color_t item_background_color,
+    color_t item_hover_color, color_t selected_item_color, color_t scroll_bar_color)
 {
     MaterialList* list = (MaterialList*)malloc(sizeof(MaterialList));
     if (list == NULL)
@@ -17,46 +17,45 @@ MaterialList* MATERIALLIST_create(int x, int y, int width, int height, int itemH
     list->width = width;
     list->height = height;
 
-    list->itemHeight = itemHeight;
+    list->item_height_ = item_height_;
 
-    list->padding = padding;
+    list->padding_ = padding;
 
-    list->scrollY = 0;
+    list->scrollY_ = 0;
 
-    list->hoverIndex = -1;
+    list->hover_index_ = -1;
     list->selected_index_ = -1;
 
-    list->items = NULL;
-    list->itemCount = 0;
+    list->items_ = NULL;
+    list->item_count_ = 0;
 
-    list->isWheel = false;
-    list->visibleItems = height / itemHeight;
+    list->is_wheel_ = false;
+    list->visible_items_ = height / item_height_;
 
     list->hdc = getHDC();
     list->hWnd = getHWnd();
     list->hRgn = CreateRectRgn(list->x, list->y, list->x + list->width, list->y + list->height);
 
-    list->backgroundColor = backgroundColor;
-    list->itemBackgroundColor = itemBackgroundColor;
-    list->itemHoverColor = itemHoverColor;
+    list->background_color_ = background_color;
+    list->item_background_color_ = item_background_color;
+    list->item_hover_color_ = item_hover_color;
     list->selected_item_color_ = selected_item_color;
-    list->scrollBarColor = scrollBarColor;
-    list->textColor = textColor;
+    list->scroll_bar_color_ = scroll_bar_color;
 
     return list;
 }
-MaterialList* MATERIALLIST_createGrayMaterialList(int x, int y, int width, int height, int itemHeight, int padding)
+MaterialList* MATERIALLIST_createGrayMaterialList(int x, int y, int width, int height, int item_height_, int padding)
 {
-    return MATERIALLIST_create(x, y, width, height, itemHeight, padding,
+    return MATERIALLIST_create(x, y, width, height, item_height_, padding,
         hexToColorref("#F5F5F5"), hexToColorref("#F5F5F5"),
-        hexToColorref("#E0E0E0"), hexToColorref("#C0C0C0"), hexToColorref("#808080"), hexToColorref("#000000"));
+        hexToColorref("#E0E0E0"), hexToColorref("#C0C0C0"), hexToColorref("#808080"));
 }
 
-MaterialList* MATERIALLIST_createBlueMaterialList(int x, int y, int width, int height, int itemHeight, int padding)
+MaterialList* MATERIALLIST_createBlueMaterialList(int x, int y, int width, int height, int item_height_, int padding)
 {
-    return MATERIALLIST_create(x, y, width, height, itemHeight, padding,
+    return MATERIALLIST_create(x, y, width, height, item_height_, padding,
         hexToColorref("#2196F3"), hexToColorref("#FFFFFF"),
-        hexToColorref("#1976D2"), hexToColorref("#90CAF9"), hexToColorref("#64B5F6"), hexToColorref("#000000"));
+        hexToColorref("#1976D2"), hexToColorref("#90CAF9"), hexToColorref("#64B5F6"));
 }
 void MATERIALLIST_destroy(MaterialList* list)
 {
@@ -74,25 +73,38 @@ void MATERIALLIST_destroy(MaterialList* list)
 
 void MATERIALLIST_clearData(MaterialList* list)
 {
-    if (list->items != NULL)
+    if (list->items_ != NULL)
     {
-        for (int i = 0; i < list->itemCount; i++)
+        for (int i = 0; i < list->item_count_; i++)
         {
-            free(list->items[i].key);
+            if (list->items_[i].first_line_ != NULL)
+            {
+                free(list->items_[i].first_line_);
+            }
+            if (list->items_[i].second_line_ != NULL)
+            {
+                free(list->items_[i].second_line_);
+            }
+
+            if (list->items_[i].key_ != NULL)
+            {
+                free(list->items_[i].key_);
+            }
         }
-        free(list->items);
-        list->items = NULL;
-        list->itemCount = 0;
+        free(list->items_);
+        list->items_ = NULL;
+        list->item_count_ = 0;
     }
 }
 
-void MATERIALLIST_setData(MaterialList* list, SearchResult* items, int itemCount)
+// 需要注意：此函数会移交内存所有权 不应该再继续使用items
+void MATERIALLIST_setData(MaterialList* list, MaterialListData* items, int item_count)
 {
     MATERIALLIST_clearData(list);
-    list->items = items;
-    list->itemCount = itemCount;
-    list->visibleItems = list->height / list->itemHeight;
-    list->scrollY = 0;
+    list->items_ = items;
+    list->item_count_ = item_count;
+    list->visible_items_ = list->height / list->item_height_;
+    list->scrollY_ = 0;
 
     list->selected_index_ = -1;
     if (list->hRgn)
@@ -111,62 +123,55 @@ static void MATERIALLIST_drawItem(MaterialList* list, int index, int y, bool isH
     }
     else if (isHovered)
     {
-        bgColor = list->itemHoverColor;
+        bgColor = list->item_hover_color_;
     }
     else
     {
-        bgColor = list->itemBackgroundColor;
+        bgColor = list->item_background_color_;
     }
 
     setfillcolor(bgColor);
-    int x = list->x + list->padding;
-    int itemWidth = list->width - 2 * list->padding;
+    int x = list->x + list->padding_;
+    int itemWidth = list->width - 2 * list->padding_;
 
-    fillroundrect(x, y, x + itemWidth, y + list->itemHeight, 10, 10);
+    fillroundrect(x, y, x + itemWidth, y + list->item_height_, 10, 10);
     setcolor(bgColor);
-    roundrect(x, y, x + itemWidth, y + list->itemHeight, 10, 10);
+    roundrect(x, y, x + itemWidth, y + list->item_height_, 10, 10);
 
-    setcolor(list->textColor);
-    setfont(16, 0, "Arial");
+    setcolor(list->items_[index].first_line_color_);
+    outtextxy(x + list->padding_, y + list->padding_, list->items_[index].first_line_);
 
-    char buffer[256];
-    SearchResult* item = &(list->items[index]);
-
-    sprintf(buffer, "ID: %u, Name: %ls", item->value.id, item->key);
-    outtextxy(x + list->padding, y + list->padding, buffer);
-
-    sprintf(buffer, "Course: %ls, Daily: %lld, Final: %lld, DailyScoreRatio: %.5f, Total: %lld",
-        item->value.course, item->value.daily_score, item->value.final_score, item->value.daily_score_ratio, item->value.final_score);
-    outtextxy(x + list->padding, y + list->padding + 20, buffer);
+    setcolor(list->items_[index].second_line_color_);
+    outtextxy(x + list->padding_, y + list->padding_ + 20, list->items_[index].second_line_);
 }
 
 void MATERIALLIST_draw(MaterialList* list)
 {
-    setfillcolor(list->backgroundColor);
+    setfillcolor(list->background_color_);
     fillroundrect(list->x, list->y, list->x + list->width, list->y + list->height, 10, 10); // 10 is a example of CORNER_RADIUS
 
-    setcolor(list->backgroundColor);
+    setcolor(list->background_color_);
     roundrect(list->x, list->y, list->x + list->width, list->y + list->height, 10, 10);
 
     SelectClipRgn(list->hdc, list->hRgn);
 
-    int startIndex = list->scrollY / list->itemHeight;
-    int endIndex = startIndex + list->visibleItems;
-    endIndex = min(endIndex, list->itemCount);
+    int startIndex = list->scrollY_ / list->item_height_;
+    int endIndex = startIndex + list->visible_items_;
+    endIndex = min(endIndex, list->item_count_);
 
     for (int i = startIndex; i < endIndex; i++)
     {
-        int y = list->y + (i - startIndex) * list->itemHeight - (list->scrollY % list->itemHeight) + list->padding;
-        bool isHovered = (i == list->hoverIndex);
+        int y = list->y + (i - startIndex) * list->item_height_ - (list->scrollY_ % list->item_height_) + list->padding_;
+        bool isHovered = (i == list->hover_index_);
         MATERIALLIST_drawItem(list, i, y, isHovered);
     }
 
-    if (list->itemCount > list->visibleItems)
+    if (list->item_count_ > list->visible_items_)
     {
-        int scrollBarHeight = (list->visibleItems * list->height) / list->itemCount;
-        int scrollBarY = list->y + (list->scrollY * list->height) / (list->itemCount * list->itemHeight);
+        int scrollBarHeight = (list->visible_items_ * list->height) / list->item_count_;
+        int scrollBarY = list->y + (list->scrollY_ * list->height) / (list->item_count_ * list->item_height_);
 
-        setfillcolor(list->scrollBarColor);
+        setfillcolor(list->scroll_bar_color_);
         fillroundrect(list->x + list->width - 8, scrollBarY + 4, list->x + list->width - 4, scrollBarY + scrollBarHeight - 4, 4, 4);
     }
     SelectClipRgn(list->hdc, NULL);
@@ -175,38 +180,38 @@ void MATERIALLIST_handleMouseMove(MaterialList* list, int mouseX, int mouseY)
 {
     if (mouseX >= list->x && mouseX < list->x + list->width && mouseY >= list->y && mouseY < list->y + list->height)
     {
-        int itemIndex = (mouseY - list->y + list->scrollY) / list->itemHeight;
-        if (itemIndex >= 0 && itemIndex < list->itemCount)
+        int itemIndex = (mouseY - list->y + list->scrollY_) / list->item_height_;
+        if (itemIndex >= 0 && itemIndex < list->item_count_)
         {
-            list->hoverIndex = itemIndex;
+            list->hover_index_ = itemIndex;
         }
         else
         {
-            list->hoverIndex = -1;
+            list->hover_index_ = -1;
         }
     }
     else
     {
-        list->hoverIndex = -1;
+        list->hover_index_ = -1;
     }
 }
 
 void MATERIALLIST_handleMouseWheel(MaterialList* list, int wheel)
 {
-    list->scrollY -= wheel / 10;
-    list->scrollY = max(list->scrollY, 0);
-    int maxScrollY = (list->itemCount - list->visibleItems) * list->itemHeight;
+    list->scrollY_ -= wheel / 10;
+    list->scrollY_ = max(list->scrollY_, 0);
+    int maxScrollY = (list->item_count_ - list->visible_items_) * list->item_height_;
     maxScrollY = max(maxScrollY, 0);
-    list->scrollY = min(list->scrollY, maxScrollY);
+    list->scrollY_ = min(list->scrollY_, maxScrollY);
 
-    list->isWheel = (wheel != 0);
+    list->is_wheel_ = (wheel != 0);
 }
 
 void MATERIALLIST_handleMouseDown(MaterialList* list, int mouseX, int mouseY)
 {
-    if (list->hoverIndex != -1)
+    if (list->hover_index_ != -1)
     {
-        list->selected_index_ = list->hoverIndex;
+        list->selected_index_ = list->hover_index_;
     }
 }
 
@@ -219,7 +224,7 @@ bool MATERIALLIST_isSelected(MaterialList* list)
     return true;
 }
 
-SearchResult MATERIALLIST_getSelectedItem(MaterialList* list)
+MaterialListData MATERIALLIST_getSelectedItem(MaterialList* list)
 {
-    return list->items[list->selected_index_];
+    return list->items_[list->selected_index_];
 }

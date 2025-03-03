@@ -37,8 +37,8 @@ void SRVECTOR_clear(SRVector* context);
 
 void SRVECTOR_destruct(SRVector* context);
 
-SRVectorType* SRVECTOR_data(SRVector* context, size_t* size);
+SRVectorType* SRVECTOR_data(SRVector* context, int* size);
 
-SRVectorType* SRVECTOR_copiedData(SRVector* context, size_t* size);
+SRVectorType* SRVECTOR_copiedData(SRVector* context, int* size);
 
 #endif // SRVECTOR_H

@@ -187,7 +187,8 @@ void MATERIALINPUT_resizeBuffer(MaterialInput* input)
 {
     input->buffer_size_ *= 2; // 加倍缓冲区大小
     wchar_t* new_buffer = (wchar_t*)realloc(input->text_, input->buffer_size_ * sizeof(wchar_t));
-    if (new_buffer) {
+    if (new_buffer)
+    {
         input->text_ = new_buffer;
     }
 }

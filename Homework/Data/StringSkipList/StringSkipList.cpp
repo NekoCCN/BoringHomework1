@@ -11,7 +11,7 @@ static int STRINGSKIPLIST_private_randomLevel(StringSkipList* self)
     return level;
 }
 
-static SkipListNode* STRINGSKIPLIST_private_createNode(const wchar_t* key, const BaseData* value, int level)
+static SkipListNode* STRINGSKIPLIST_private_createNode(const wchar_t* key, const BookData* value, int level)
 {
     SkipListNode* newNode = (SkipListNode*)malloc(sizeof(SkipListNode));
     if (newNode == NULL)
@@ -44,12 +44,17 @@ static SkipListNode* STRINGSKIPLIST_private_createNode(const wchar_t* key, const
 
     if (value != NULL)
     {
-        wcscpy(newNode->value.course, value->course);
-        newNode->value.daily_score = value->daily_score;
-        newNode->value.daily_score_ratio = value->daily_score_ratio;
-        newNode->value.final_score = value->final_score;
-        newNode->value.id = value->id;
-        newNode->value.score = value->score;
+        wcscpy(newNode->value.catagory_, value->catagory_);
+        wcscpy(newNode->value.publisher_, value->publisher_);
+        newNode->value.isbn_ = value->isbn_;
+        newNode->value.num_ = value->num_;
+        newNode->value.total_num_ = value->total_num_;
+        newNode->value.image_toc_index_ = value->image_toc_index_;
+        newNode->value.can_rent_ = value->can_rent_;
+    }
+    else
+    {
+        memset(&newNode->value, 0, sizeof(BookData));
     }
 
     return newNode;
@@ -87,7 +92,10 @@ StringSkipList* STRINGSKIPLIST_construct(int max_level, float probability)
 
 void STRINGSKIPLIST_destruct(StringSkipList* self)
 {
-    if (!self) return;
+    if (!self)
+    {
+        return;
+    }
     SkipListNode* current = self->header;
     SkipListNode* next;
 
@@ -100,7 +108,7 @@ void STRINGSKIPLIST_destruct(StringSkipList* self)
     free(self);
 }
 
-StringSkipListResult STRINGSKIPLIST_insertW(StringSkipList* self, const wchar_t* wstr, BaseData* value)
+StringSkipListResult STRINGSKIPLIST_insertW(StringSkipList* self, const wchar_t* wstr, BookData* value)
 {
     if (self == NULL || wstr == NULL)
     {
@@ -113,8 +121,6 @@ StringSkipListResult STRINGSKIPLIST_insertW(StringSkipList* self, const wchar_t*
     {
         return STRINGSKIPLIST_ERROR_MEMORY_ALLOCATION;
     }
-
-    value->score = value->daily_score * value->daily_score_ratio + value->final_score * (1 - value->daily_score_ratio);
 
     for (int i = 0; i < self->max_level_; ++i)
     {
@@ -162,7 +168,7 @@ StringSkipListResult STRINGSKIPLIST_insertW(StringSkipList* self, const wchar_t*
     return STRINGSKIPLIST_SUCCESS;
 }
 
-StringSkipListResult STRINGSKIPLIST_insert(StringSkipList* self, const char* str, BaseData* value)
+StringSkipListResult STRINGSKIPLIST_insert(StringSkipList* self, const char* str, BookData* value)
 {
     if (self == NULL || str == NULL)
     {
@@ -208,12 +214,10 @@ bool STRINGSKIPLIST_searchW(StringSkipList* self, const wchar_t* wstr, SearchRes
     if (current && wcscmp(current->key, wstr) == 0)
     {
         value->value = current->value;
-        value->key = (wchar_t*)malloc(sizeof(wchar_t) * wcslen(current->key));
+        value->key = (wchar_t*)malloc(sizeof(wchar_t) * (wcslen(current->key) + 1));
         wcscpy(value->key, current->key);
         return true;
     }
-
-
 
     return false;
 }
@@ -338,31 +342,51 @@ void STRINGSKIPLIST_printList(StringSkipList* self)
     }
     fflush(stdout);
 }
-
-void STRINGSKIPLIST_serializeSimple(StringSkipList* self, const char* filename)
+// 必须给一个空指针 意味着控制权移交
+bool STRINGSKIPLIST_serializeSimple(StringSkipList* self, char** buffer, int* buffer_size)
 {
-    if (!self || !filename) return;
-
-    FILE* file = fopen(filename, "wb");
-    if (!file)
+    if (self == NULL || buffer == NULL || buffer_size == NULL)
     {
-        perror("Failed to open file for writing");
-        return;
+        return false;
     }
 
-    uint32_t magic_number = 0x2333F;
-    fwrite(&magic_number, sizeof(uint32_t), 1, file);
-    fwrite(&self->max_level_, sizeof(int), 1, file);
-    fwrite(&self->probability_, sizeof(float), 1, file);
+    uint32_t total_size = sizeof(uint32_t) + sizeof(int) + sizeof(float) + sizeof(int);
 
     int nodeCount = 0;
     SkipListNode* current = self->header->forward[0];
     while (current)
     {
         nodeCount++;
+        // 转换为UTF-8 即单位char再做序列化 和直接使用sizeof(wchar_t) * wcslen(current->key)类似但更稳定
+        size_t utf8KeyLength = wcstombs(NULL, current->key, 0);
+        if (utf8KeyLength == (size_t)-1)
+        {
+            return false;
+        }
+        total_size += sizeof(uint32_t);  // keyLength
+        total_size += utf8KeyLength;    // key data
+        total_size += sizeof(BookData);  // value
         current = current->forward[0];
     }
-    fwrite(&nodeCount, sizeof(int), 1, file);
+
+    char* buf = (char*)malloc(total_size);
+    if (buf == NULL)
+    {
+        return false;
+    }
+
+    char* ptr = buf;
+    uint32_t magic_number = 0x2333F;
+
+    memcpy(ptr, &magic_number, sizeof(uint32_t));
+    ptr += sizeof(uint32_t);
+    memcpy(ptr, &self->max_level_, sizeof(int));
+    ptr += sizeof(int);
+    memcpy(ptr, &self->probability_, sizeof(float));
+    ptr += sizeof(float);
+    memcpy(ptr, &nodeCount, sizeof(int));
+    ptr += sizeof(int);
+
 
     current = self->header->forward[0];
     while (current)
@@ -373,114 +397,90 @@ void STRINGSKIPLIST_serializeSimple(StringSkipList* self, const char* filename)
         utf8KeyLength = wcstombs(NULL, current->key, 0);
         if (utf8KeyLength == (size_t)-1)
         {
-            fclose(file);
-            return;
+            free(buf);
+            return false;
         }
         utf8Key = (char*)malloc(utf8KeyLength + 1);
         if (utf8Key == NULL)
         {
-            fclose(file);
-            return;
+            free(buf);
+            return false;
         }
         wcstombs(utf8Key, current->key, utf8KeyLength + 1);
 
         uint32_t keyLength = (uint32_t)utf8KeyLength;
 
-        fwrite(&keyLength, sizeof(uint32_t), 1, file);
-        fwrite(utf8Key, sizeof(char), keyLength, file);
-        fwrite(&current->value, sizeof(BaseData), 1, file);
+        memcpy(ptr, &keyLength, sizeof(uint32_t));
+        ptr += sizeof(uint32_t);
+        memcpy(ptr, utf8Key, keyLength);
+        ptr += keyLength;
+        memcpy(ptr, &current->value, sizeof(BookData));
+        ptr += sizeof(BookData);
 
         free(utf8Key);
-
         current = current->forward[0];
     }
 
-    fclose(file);
+    *buffer = buf;
+    *buffer_size = total_size;
+    return true;
 }
 
-StringSkipList* STRINGSKIPLIST_deserializeSimple(const char* filename)
+// 从内存反序列化
+StringSkipList* STRINGSKIPLIST_deserializeSimple(const char* buffer, int buffer_size)
 {
-    if (!filename) return NULL;
-    FILE* file = fopen(filename, "rb");
-    if (!file)
+    if (!buffer || buffer_size <= 0)
     {
         return NULL;
     }
 
+    const char* ptr = buffer;
+
     uint32_t magic_number;
-    if (fread(&magic_number, sizeof(uint32_t), 1, file) != 1)
-    {
-        fclose(file);
-        return NULL;
-    }
+    memcpy(&magic_number, ptr, sizeof(uint32_t));
+    ptr += sizeof(uint32_t);
     if (magic_number != 0x2333F)
     {
-        fclose(file);
         return NULL;
     }
 
     int max_level_;
-    if (fread(&max_level_, sizeof(int), 1, file) != 1)
-    {
-        fclose(file);
-        return NULL;
-    }
+    memcpy(&max_level_, ptr, sizeof(int));
+    ptr += sizeof(int);
 
     float probability_;
-    if (fread(&probability_, sizeof(float), 1, file) != 1)
-    {
-        fclose(file);
-        return NULL;
-    }
+    memcpy(&probability_, ptr, sizeof(float));
+    ptr += sizeof(float);
 
     int nodeCount;
-    if (fread(&nodeCount, sizeof(int), 1, file) != 1)
-    {
-        fclose(file);
-        return NULL;
-    }
+    memcpy(&nodeCount, ptr, sizeof(int));
+    ptr += sizeof(int);
 
     StringSkipList* self = STRINGSKIPLIST_construct(max_level_, probability_);
-    if (!self) {
-        fclose(file);
+    if (!self)
+    {
         return NULL;
     }
 
     for (int i = 0; i < nodeCount; i++)
     {
         uint32_t keyLength;
-        if (fread(&keyLength, sizeof(uint32_t), 1, file) != 1)
-        {
-            STRINGSKIPLIST_destruct(self);
-            fclose(file);
-            return NULL;
-        }
+        memcpy(&keyLength, ptr, sizeof(uint32_t));
+        ptr += sizeof(uint32_t);
 
         char* utf8Key = (char*)malloc(keyLength + 1);
         if (utf8Key == NULL)
         {
             STRINGSKIPLIST_destruct(self);
-            fclose(file);
             return NULL;
         }
-
-        if (fread(utf8Key, sizeof(char), keyLength, file) != keyLength)
-        {
-            free(utf8Key);
-            STRINGSKIPLIST_destruct(self);
-            fclose(file);
-            return NULL;
-        }
+        memcpy(utf8Key, ptr, keyLength);
+        ptr += keyLength;
         utf8Key[keyLength] = '\0';
 
-        BaseData value;
-        if (fread(&value, sizeof(BaseData), 1, file) != 1)
-        {
-            free(utf8Key);
-            STRINGSKIPLIST_destruct(self);
-            fclose(file);
-            return NULL;
-        }
+        BookData value;
+        memcpy(&value, ptr, sizeof(BookData));
+        ptr += sizeof(BookData);
 
         wchar_t* wstr = NULL;
         size_t wide_size = mbstowcs(NULL, utf8Key, 0);
@@ -488,16 +488,13 @@ StringSkipList* STRINGSKIPLIST_deserializeSimple(const char* filename)
         {
             free(utf8Key);
             STRINGSKIPLIST_destruct(self);
-            fclose(file);
             return NULL;
         }
-
         wstr = (wchar_t*)malloc(sizeof(wchar_t) * (wide_size + 1));
         if (wstr == NULL)
         {
             free(utf8Key);
             STRINGSKIPLIST_destruct(self);
-            fclose(file);
             return NULL;
         }
         mbstowcs(wstr, utf8Key, wide_size + 1);
@@ -507,14 +504,90 @@ StringSkipList* STRINGSKIPLIST_deserializeSimple(const char* filename)
             free(wstr);
             free(utf8Key);
             STRINGSKIPLIST_destruct(self);
-            fclose(file);
             return NULL;
         }
-
         free(utf8Key);
         free(wstr);
     }
-    fclose(file);
+
+    return self;
+}
+
+// 从文件指针反序列化
+StringSkipList* STRINGSKIPLIST_deserializeSimpleFile(FILE* file)
+{
+    if (file == NULL)
+    {
+        return NULL;
+    }
+
+    uint32_t magic_number;
+    fread(&magic_number, 1, sizeof(uint32_t), file);
+    if (magic_number != 0x2333F)
+    {
+        return NULL;
+    }
+
+    int max_level_;
+    fread(&max_level_, 1, sizeof(int), file);
+
+    float probability_;
+    fread(&probability_, 1, sizeof(float), file);
+
+    int nodeCount;
+    fread(&nodeCount, 1, sizeof(int), file);
+
+    StringSkipList* self = STRINGSKIPLIST_construct(max_level_, probability_);
+    if (!self)
+    {
+        return NULL;
+    }
+
+    for (int i = 0; i < nodeCount; i++)
+    {
+        uint32_t keyLength;
+        fread(&keyLength, 1, sizeof(uint32_t), file);
+
+        char* utf8Key = (char*)malloc(keyLength + 1);
+        if (utf8Key == NULL)
+        {
+            STRINGSKIPLIST_destruct(self);
+            return NULL;
+        }
+        fread(utf8Key, keyLength, 1, file);
+        utf8Key[keyLength] = '\0';
+
+        BookData value;
+        fread(&value, sizeof(BookData), 1, file);
+
+        wchar_t* wstr = NULL;
+        size_t wide_size = mbstowcs(NULL, utf8Key, 0);
+        if (wide_size == (size_t)-1)
+        {
+            free(utf8Key);
+            STRINGSKIPLIST_destruct(self);
+            return NULL;
+        }
+        wstr = (wchar_t*)malloc(sizeof(wchar_t) * (wide_size + 1));
+        if (wstr == NULL)
+        {
+            free(utf8Key);
+            STRINGSKIPLIST_destruct(self);
+            return NULL;
+        }
+        mbstowcs(wstr, utf8Key, wide_size + 1);
+
+        if (STRINGSKIPLIST_insertW(self, wstr, &value) != STRINGSKIPLIST_SUCCESS)
+        {
+            free(wstr);
+            free(utf8Key);
+            STRINGSKIPLIST_destruct(self);
+            return NULL;
+        }
+        free(utf8Key);
+        free(wstr);
+    }
+
     return self;
 }
 
@@ -527,7 +600,8 @@ StringSkipListResult STRINGSKIPLIST_deleteW(StringSkipList* self, const wchar_t*
 
     SkipListNode* current = self->header;
     SkipListNode** update = (SkipListNode**)malloc(sizeof(SkipListNode*) * self->max_level_);
-    if (update == NULL) {
+    if (update == NULL)
+    {
         return STRINGSKIPLIST_ERROR_MEMORY_ALLOCATION;
     }
 
@@ -655,7 +729,6 @@ int STRINGSKIPLIST_deletePrefixW(StringSkipList* self, const wchar_t* prefix)
 
 int STRINGSKIPLIST_deletePrefix(StringSkipList* self, const char* prefix)
 {
-
     if (self == NULL || prefix == NULL)
     {
         return 0;
@@ -715,7 +788,7 @@ wchar_t* STRINGSKIPLIST_iteratorGetKey(const StringSkipListIterator* iterator)
     return NULL;
 }
 
-const BaseData* STRINGSKIPLIST_iteratorGetValue(const StringSkipListIterator* iterator)
+const BookData* STRINGSKIPLIST_iteratorGetValue(const StringSkipListIterator* iterator)
 {
     if (iterator && iterator->current)
     {
@@ -773,7 +846,13 @@ SearchResult* STRINGSKIPLIST_getAll(StringSkipList* self, int* count)
         wcscpy(results[*count - 1].key, current->key);
 
         // 复制 value
-        results[*count - 1].value = current->value;
+        wcscpy(results[*count - 1].value.catagory_, current->value.catagory_);
+        results[*count - 1].value.image_toc_index_ = current->value.image_toc_index_;
+        results[*count - 1].value.isbn_ = current->value.isbn_;
+        results[*count - 1].value.num_ = current->value.num_;
+        wcscpy(results[*count - 1].value.publisher_, current->value.publisher_);
+        results[*count - 1].value.total_num_ = current->value.total_num_;
+        results[*count - 1].value.can_rent_ = current->value.can_rent_;
 
         current = current->forward[0]; // 移动到下一个节点
     }

@@ -10,6 +10,7 @@ typedef enum Sidebar_Button_Type
     SIDEBAR_BUTTON_INSERTBOOK,
     SIDEBAR_BUTTON_INSERTUSER,
     SIDEBAR_BUTTON_QUERYUSER,
+    SIDEBAR_BUTTON_ACCOUNT,
     SIDEBAR_BUTTON_STATISTICS,
 } SidebarButtonType;
 
@@ -27,9 +28,13 @@ typedef struct Sidebar
     ListButton* button_insert_user_;
     ListButton* button_query_user_;
 
+    ListButton* button_account_;
+
     ListButton* button_statistics_;
 
     ListButton* button_exit_;
+
+    bool is_active_;
 
     bool is_exit_;
 } Sidebar;
@@ -46,6 +51,10 @@ void SIDEBAR_handleMouseMove(Sidebar* self, int x, int y);
 void SIDEBAR_handleButtonDown(Sidebar* self, int x, int y);
 
 SidebarButtonType SIDEBAR_getStatus(Sidebar* self);
+
+bool SIDEBAR_isActive(Sidebar* self);
+
+void SIDEBAR_setActive(Sidebar* self, bool active);
 
 void SIDEBAR_setStatus(Sidebar* self, SidebarButtonType status);
 

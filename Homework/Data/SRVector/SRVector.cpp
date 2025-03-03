@@ -68,13 +68,13 @@ void SRVECTOR_destruct(SRVector* context)
     free(context);
 }
 
-SRVectorType* SRVECTOR_data(SRVector* context, size_t* size)
+SRVectorType* SRVECTOR_data(SRVector* context, int* size)
 {
     *size = context->size;
     return context->data;
 }
 
-SRVectorType* SRVECTOR_copiedData(SRVector* context, size_t* size)
+SRVectorType* SRVECTOR_copiedData(SRVector* context, int* size)
 {
     SRVectorType* buf;
     *size = context->size;

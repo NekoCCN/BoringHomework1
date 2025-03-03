@@ -22,4 +22,8 @@ bool checkHexColor(const char* hex_str);
 // Darken Color Tool
 color_t darkenColor(color_t color, float factor);
 
+// MurmurHash3算法 也是G++的哈希算法 用来实现密码加密
+// 参考自其他实现
+uint32_t hash_murmur3(const void* data, size_t length);
+
 #endif // TOOLS_H

@@ -1,5 +1,5 @@
 #pragma once
-#ifndef BUTTON_H BUTTON_H 作为 include guard
+#ifndef BUTTON_H
 #define BUTTON_H
 #include <graphics.h>
 #include <wchar.h>

@@ -8,9 +8,9 @@ typedef enum QueryType_Button_Type
 {
     QUERYBOOK_TYPE_BUTTON_PREFIX,
     QUERYBOOK_TYPE_BUTTON_ENTIRE,
-    QUERYBOOK_TYPE_BUTTON_ID,
-    QUERYBOOK_TYPE_BUTTON_SCORE,
-    QUERYBOOK_TYPE_BUTTON_TOTAL,
+
+    QUERYBOOK_TYPE_BUTTON_ISBN,
+    QUERYBOOK_TYPE_BUTTON_REGEX,
 } QueryTypeButtonType;
 
 typedef struct QueryTypeStruct
@@ -25,9 +25,8 @@ typedef struct QueryTypeStruct
     ListButton* button_prefix_;
     ListButton* button_entire_;
 
-    ListButton* button_id_;
-    ListButton* button_score_;
-    ListButton* button_total_;
+    ListButton* button_isbn_;
+    ListButton* button_regex_;
 
     QueryTypeButtonType status_;
 } QueryType;

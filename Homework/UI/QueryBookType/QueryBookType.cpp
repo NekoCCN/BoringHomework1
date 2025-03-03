@@ -6,16 +6,12 @@ static ListButton* QUERYTYPE_getStatusButton(QueryType* self)
     {
     case QUERYBOOK_TYPE_BUTTON_ENTIRE:
         return self->button_entire_;
-    case QUERYBOOK_TYPE_BUTTON_ID:
-        return self->button_id_;
+    case QUERYBOOK_TYPE_BUTTON_REGEX:
+        return self->button_regex_;
     case QUERYBOOK_TYPE_BUTTON_PREFIX:
         return self->button_prefix_;
-    case QUERYBOOK_TYPE_BUTTON_SCORE:
-        return self->button_score_;
-    case QUERYBOOK_TYPE_BUTTON_TOTAL:
-        return self->button_total_;
-    default:
-        return NULL;
+    case QUERYBOOK_TYPE_BUTTON_ISBN:
+        return self->button_isbn_;
     }
 }
 QueryType* QUERYTYPE_create(int x, int y, int width, int radius)
@@ -66,44 +62,27 @@ QueryType* QUERYTYPE_create(int x, int y, int width, int radius)
         return NULL;
     }
 
-    self->button_score_ = LISTBUTTON_create(button_left + button_width * 2 + small_spacing + big_spacing, y, button_left + button_width * 2 + small_spacing * 1 + button_width + big_spacing,
-        y + button_height, "单项分数",
+    self->button_isbn_ = LISTBUTTON_create(button_left + button_width * 2 + small_spacing + big_spacing, y, button_left + button_width * 2 + small_spacing * 1 + button_width + big_spacing,
+        y + button_height, "ISBN",
         background_color, hover_color, active_color, text_color,
         false, WHITE, radius, padding);
-    if (!self->button_score_)
+    if (!self->button_isbn_)
     {
         free(self->button_prefix_);
         free(self->button_entire_);
-        free(self->button_score_);
         free(self);
         return NULL;
     }
 
-    self->button_total_ = LISTBUTTON_create(button_left + button_width * 3 + small_spacing * 2 + big_spacing, y, button_left + button_width * 3 + small_spacing * 2 + button_width + big_spacing,
-        y + button_height, "总分",
+    self->button_regex_ = LISTBUTTON_create(button_left + button_width * 3 + small_spacing * 2 + big_spacing, y, button_left + button_width * 3 + small_spacing * 2 + button_width + big_spacing,
+        y + button_height, "正则(模糊)",
         background_color, hover_color, active_color, text_color,
         false, WHITE, radius, padding);
-    if (!self->button_total_)
+    if (!self->button_regex_)
     {
         free(self->button_prefix_);
         free(self->button_entire_);
-        free(self->button_score_);
-        free(self->button_total_);
-        free(self);
-        return NULL;
-    }
-
-    self->button_id_ = LISTBUTTON_create(button_left + button_width * 4 + small_spacing * 3 + big_spacing, y, button_left + button_width * 4 + small_spacing * 3 + button_width + big_spacing,
-        y + button_height, "ID",
-        background_color, hover_color, active_color, text_color,
-        false, WHITE, radius, padding);
-    if (!self->button_id_)
-    {
-        free(self->button_prefix_);
-        free(self->button_entire_);
-        free(self->button_score_);
-        free(self->button_total_);
-        free(self->button_id_);
+        free(self->button_isbn_);
         free(self);
         return NULL;
     }
@@ -134,18 +113,16 @@ void QUERYTYPE_draw(QueryType* self)
 
     LISTBUTTON_draw(self->button_prefix_);
     LISTBUTTON_draw(self->button_entire_);
-    LISTBUTTON_draw(self->button_score_);
-    LISTBUTTON_draw(self->button_total_);
-    LISTBUTTON_draw(self->button_id_);
+    LISTBUTTON_draw(self->button_isbn_);
+    LISTBUTTON_draw(self->button_regex_);
 }
 
 void QUERYTYPE_handleMouseMove(QueryType* self, int x, int y)
 {
     LISTBUTTON_handleMouseMove(self->button_prefix_, x, y);
     LISTBUTTON_handleMouseMove(self->button_entire_, x, y);
-    LISTBUTTON_handleMouseMove(self->button_score_, x, y);
-    LISTBUTTON_handleMouseMove(self->button_total_, x, y);
-    LISTBUTTON_handleMouseMove(self->button_id_, x, y);
+    LISTBUTTON_handleMouseMove(self->button_isbn_, x, y);
+    LISTBUTTON_handleMouseMove(self->button_regex_, x, y);
 }
 
 void QUERYTYPE_handleButtonDown(QueryType* self, int x, int y)
@@ -164,22 +141,16 @@ void QUERYTYPE_handleButtonDown(QueryType* self, int x, int y)
         status = QUERYBOOK_TYPE_BUTTON_ENTIRE;
     }
 
-    LISTBUTTON_handleButtonDown(self->button_score_, x, y);
-    if (LISTBUTTON_isActived(self->button_score_) && self->status_ != QUERYBOOK_TYPE_BUTTON_SCORE)
+    LISTBUTTON_handleButtonDown(self->button_isbn_, x, y);
+    if (LISTBUTTON_isActived(self->button_isbn_) && self->status_ != QUERYBOOK_TYPE_BUTTON_ISBN)
     {
-        status = QUERYBOOK_TYPE_BUTTON_SCORE;
+        status = QUERYBOOK_TYPE_BUTTON_ISBN;
     }
 
-    LISTBUTTON_handleButtonDown(self->button_total_, x, y);
-    if (LISTBUTTON_isActived(self->button_total_) && self->status_ != QUERYBOOK_TYPE_BUTTON_TOTAL)
+    LISTBUTTON_handleButtonDown(self->button_regex_, x, y);
+    if (LISTBUTTON_isActived(self->button_regex_) && self->status_ != QUERYBOOK_TYPE_BUTTON_REGEX)
     {
-        status = QUERYBOOK_TYPE_BUTTON_TOTAL;
-    }
-
-    LISTBUTTON_handleButtonDown(self->button_id_, x, y);
-    if (LISTBUTTON_isActived(self->button_id_) && self->status_ != QUERYBOOK_TYPE_BUTTON_ID)
-    {
-        status = QUERYBOOK_TYPE_BUTTON_ID;
+        status = QUERYBOOK_TYPE_BUTTON_REGEX;
     }
 
     if (status != self->status_)
@@ -198,8 +169,7 @@ void QUERYTYPE_destroy(QueryType* self)
 {
     LISTBUTTON_destroy(self->button_prefix_);
     LISTBUTTON_destroy(self->button_entire_);
-    LISTBUTTON_destroy(self->button_score_);
-    LISTBUTTON_destroy(self->button_total_);
-    LISTBUTTON_destroy(self->button_id_);
+    LISTBUTTON_destroy(self->button_isbn_);
+    LISTBUTTON_destroy(self->button_regex_);
     free(self);
 }
