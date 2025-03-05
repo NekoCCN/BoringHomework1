@@ -18,7 +18,9 @@ enum DataRStreamResult
 
 typedef struct DataRStreamStruct
 {
-	FILE* file_ptr_;
+	FILE* admin_file_ptr_;
+	FILE* book_file_ptr_;
+	FILE* user_file_ptr_;
 
 	StringSkipList* data_;
 
@@ -30,7 +32,7 @@ typedef struct DataRStreamStruct
 	uint64_t user_num_;
 } DataRStream;
 
-DataRStream* DATARSTREAM_create(const char* filename);
+DataRStream* DATARSTREAM_create(const char* admin_filename, const char* book_filename, const char* user_filename);
 
 void DATARSTREAM_destory(DataRStream* self);
 

@@ -26,4 +26,7 @@ color_t darkenColor(color_t color, float factor);
 // 参考自其他实现
 uint32_t hash_murmur3(const void* data, size_t length);
 
+// KMP算法
+int kmpSearchWchar(const wchar_t* text, const wchar_t* pattern);
+
 #endif // TOOLS_H

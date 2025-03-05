@@ -190,7 +190,7 @@ void INSERTUSER_handleMouseDown(InsertUser* self, int x, int y)
 
         Date target = Date_addDays(now, day_time);
 
-        LIST_PushBack(self->data_, name, book_name, target.year, target.month, target.day, id);
+        LIST_PushBack(self->data_, name, book_name, target.year, target.month, target.day, id, true);
 
         MATERIALINPUT_setText(self->input_book_name_, L"");
         MATERIALINPUT_setText(self->input_name_, L"");

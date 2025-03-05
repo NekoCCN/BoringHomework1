@@ -10,7 +10,6 @@
 #include "../../Data/SRVector/SRVector.h"
 #include "../../UI/InsertBook/InsertBook.h"
 #include "../../UI/InsertUser/InsertUser.h"
-#include "../../Tools/Regex.hpp"
 #include "../../UI/Sidebar/Sidebar.h"
 #include "../../UI/Login/Login.h"
 #include <wchar.h>

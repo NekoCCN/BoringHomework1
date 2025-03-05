@@ -28,8 +28,6 @@ typedef struct QueryUserTypeStruct
     ListButton* button_id_;
     ListButton* button_time_;
 
-    ListButton* button_regex_;
-
     QueryUserTypeButtonType status_;
 } QueryUserType;
 
@@ -42,6 +40,8 @@ void QUERYUSERTYPE_handleMouseMove(QueryUserType* self, int x, int y);
 void QUERYUSERTYPE_handleButtonDown(QueryUserType* self, int x, int y);
 
 QueryUserTypeButtonType QUERYUSERTYPE_getStatus(QueryUserType* self);
+
+void QUERYUSERTYPE_setQueryType(QueryUserType* self, QueryUserTypeButtonType status);
 
 void QUERYUSERTYPE_destroy(QueryUserType* self);
 

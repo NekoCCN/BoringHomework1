@@ -9,7 +9,6 @@
 #include "../QueryUserType/QueryUserType.h"
 #include "../../Data/UDVector/UDVector.h"
 #include "../../UI/InsertUser/InsertUser.h"
-#include "../../Tools/Regex.hpp"
 #include "../../Tools/Tools.h"
 #include "../../UI/Sidebar/Sidebar.h"
 #include "../../UI/Login/Login.h"
@@ -28,6 +27,14 @@ typedef struct QueryUserStruct
     // 避嫌C++关键字delete
     Button* del_;
     Button* update_;
+
+    // 避嫌C/C++关键字return
+    Button* ret_;
+
+    Button* search_user_name_;
+    Button* search_book_name_;
+
+    ListButton* is_rend_search_;
 
     QueryUserType* type_;
 

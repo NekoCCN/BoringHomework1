@@ -109,3 +109,67 @@ uint32_t hash_murmur3(const void* data, size_t length)
 
     return h1;
 }
+
+// 静态的 用于构建KMP的最长公共前后缀数组 实现下面的KMP算法
+static void computeNextArrayWchar(const wchar_t* pattern, int m, int* next)
+{
+    next[0] = 0;
+    int length = 0;
+    for (int i = 1; i < m; i++)
+    {
+        while (length > 0 && pattern[i] != pattern[length])
+        {
+            length = next[length - 1];
+        }
+        if (pattern[i] == pattern[length])
+        {
+            length++;
+        }
+        next[i] = length;
+    }
+}
+
+// KMP算法
+int kmpSearchWchar(const wchar_t* text, const wchar_t* pattern)
+{
+    int n = wcslen(text);
+    int m = wcslen(pattern);
+
+    if (m == 0) return 0;
+    if (n == 0) return -1;
+
+    int* next = (int*)malloc(sizeof(int) * m);
+    if (!next)
+    {
+        perror("malloc failed");
+        exit(1);
+    }
+    computeNextArrayWchar(pattern, m, next);
+
+    int i = 0, j = 0;
+    while (i < n)
+    {
+        if (text[i] == pattern[j])
+        {
+            i++; j++;
+        }
+        if (j == m)
+        {
+            free(next);
+            return i - j;
+        }
+        else if (i < n && text[i] != pattern[j])
+        {
+            if (j != 0)
+            {
+                j = next[j - 1];
+            }
+            else
+            {
+                i++;
+            }
+        }
+    }
+    free(next);
+    return -1;
+}

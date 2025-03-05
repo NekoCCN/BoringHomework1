@@ -20,6 +20,7 @@ list* LIST_Construct()
     context->head->data.book_name_ = NULL;
     context->head->data.user_name_ = NULL;
     context->head->data.id_ = 0;
+    context->head->data.rent_status_ = true;
     context->head->prev = NULL;
 
     context->tail = (UserNode*)malloc(sizeof(UserNode));
@@ -34,7 +35,8 @@ list* LIST_Construct()
     context->tail->data.month_ = 0;
     context->tail->data.book_name_ = NULL;
     context->tail->data.user_name_ = NULL;
-    context->head->data.id_ = 0;
+    context->tail->data.id_ = 0;
+    context->tail->data.rent_status_ = false;
     context->tail->next = NULL;
 
     context->head->next = context->tail;
@@ -44,7 +46,8 @@ list* LIST_Construct()
     return context;
 }
 
-list* LIST_PushBack(list* context, const wchar_t* user_name, const wchar_t* book_name, uint32_t year, uint32_t month, uint32_t day, uint64_t id)
+list* LIST_PushBack(list* context, const wchar_t* user_name, const wchar_t* book_name,
+    uint32_t year, uint32_t month, uint32_t day, uint64_t id, bool rent_status)
 {
     if (!context || !user_name || !book_name)
     {
@@ -61,6 +64,7 @@ list* LIST_PushBack(list* context, const wchar_t* user_name, const wchar_t* book
     newNode->data.day_ = day;
     newNode->data.month_ = month;
     newNode->data.id_ = id;
+    newNode->data.rent_status_ = rent_status;
 
     newNode->data.book_name_ = (wchar_t*)malloc(sizeof(wchar_t) * (wcslen(book_name) + 1));
     if (!newNode->data.book_name_)
@@ -93,7 +97,8 @@ list* LIST_PushBack(list* context, const wchar_t* user_name, const wchar_t* book
     return context;
 }
 
-list* LIST_PushFront(list* context, const wchar_t* user_name, const wchar_t* book_name, uint32_t year, uint32_t month, uint32_t day, uint64_t id)
+list* LIST_PushFront(list* context, const wchar_t* user_name, const wchar_t* book_name
+    , uint32_t year, uint32_t month, uint32_t day, uint64_t id, bool rent_status)
 {
     if (!context || !user_name || !book_name)
     {
@@ -110,6 +115,7 @@ list* LIST_PushFront(list* context, const wchar_t* user_name, const wchar_t* boo
     newNode->data.day_ = day;
     newNode->data.month_ = month;
     newNode->data.id_ = id;
+    newNode->data.rent_status_ = rent_status;
 
     newNode->data.book_name_ = (wchar_t*)malloc(sizeof(wchar_t) * (wcslen(book_name) + 1));
     if (!newNode->data.book_name_)
@@ -189,7 +195,18 @@ UserData LIST_Get(list* context, unsigned index)
     return buf->data;
 }
 
-list* LIST_Insert(list* context, unsigned index, const wchar_t* user_name, const wchar_t* book_name, uint32_t year, uint32_t month, uint32_t day, uint64_t id)
+UserData* LIST_GetPtr(list* context, unsigned index)
+{
+    UserNode* buf = LIST_PRIVATE_GetNode(context, index);
+    if (!buf)
+    {
+        return NULL;
+    }
+    return &buf->data;
+}
+
+list* LIST_Insert(list* context, unsigned index, const wchar_t* user_name, const wchar_t* book_name,
+    uint32_t year, uint32_t month, uint32_t day, uint64_t id, bool rent_status)
 {
     if (!context || !user_name || !book_name || index > context->size)
     {
@@ -212,6 +229,7 @@ list* LIST_Insert(list* context, unsigned index, const wchar_t* user_name, const
     newNode->data.day_ = day;
     newNode->data.month_ = month;
     newNode->data.id_ = id;
+    newNode->data.rent_status_ = rent_status;
 
     newNode->data.book_name_ = (wchar_t*)malloc(sizeof(wchar_t) * (wcslen(book_name) + 1));
     if (!newNode->data.book_name_)
@@ -320,7 +338,7 @@ bool LIST_iteratorEnd(const UserListIterator* iterator)
 
 UserData LIST_iteratorGetData(const UserListIterator* iterator)
 {
-    UserData emptyData = { NULL, NULL, 0, 0, 0 };
+    UserData emptyData = { NULL, NULL, 0, 0, 0, 0, false };
     if (!iterator || !iterator->current)
     {
         return emptyData;
@@ -353,6 +371,7 @@ bool LIST_serialize(list* self, char** buffer, size_t* buffer_size)
     {
         UserData data = LIST_iteratorGetData(&iter);
         required_size += sizeof(uint32_t) * 4;
+        required_size += sizeof(bool);
 
         size_t user_name_utf8_len = wcstombs(NULL, data.user_name_, 0);
         if (user_name_utf8_len == (size_t)-1)
@@ -405,6 +424,8 @@ bool LIST_serialize(list* self, char** buffer, size_t* buffer_size)
         current_pos += sizeof(uint32_t);
         memcpy(current_pos, &data.id_, sizeof(uint64_t));
         current_pos += sizeof(uint32_t);
+        memcpy(current_pos, &data.rent_status_, sizeof(bool));
+        current_pos += sizeof(bool);
 
         // 将 user_name_ 转换为 UTF-8 并写入
         size_t user_name_utf8_len = wcstombs(NULL, data.user_name_, 0);
@@ -477,6 +498,7 @@ list* LIST_deserializeFile(FILE* file)
     for (unsigned i = 0; i < size; ++i)
     {
         uint32_t year, month, day, id;
+        bool rent_status;
         size_t user_name_utf8_len, book_name_utf8_len;
         char* user_name_utf8 = NULL;
         char* book_name_utf8 = NULL;
@@ -487,7 +509,9 @@ list* LIST_deserializeFile(FILE* file)
         fread(&year, sizeof(uint32_t), 1, file);
         fread(&month, sizeof(uint32_t), 1, file);
         fread(&day, sizeof(uint32_t), 1, file);
+
         fread(&id, sizeof(uint32_t), 1, file);
+        fread(&rent_status, sizeof(bool), 1, file);
 
         fread(&user_name_utf8_len, sizeof(size_t), 1, file);
 
@@ -600,7 +624,7 @@ list* LIST_deserializeFile(FILE* file)
         free(book_name_utf8);
         book_name_utf8 = NULL;
 
-        if (!LIST_PushBack(context, user_name, book_name, year, month, day, id))
+        if (!LIST_PushBack(context, user_name, book_name, year, month, day, id, rent_status))
         {
             if (user_name_utf8)
             {

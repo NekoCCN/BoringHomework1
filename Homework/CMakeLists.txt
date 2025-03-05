@@ -49,8 +49,6 @@ set (HomeWork_SRC
  "Data/UDVector/UDVector.h"
  "UI/AdminUser/AdminUser.h"
  "UI/AdminUser/AdminUser.cpp"
- "Tools/Regex.cpp"
- "Tools/Regex.hpp"
 )
 
 add_executable (Homework ${HomeWork_SRC})

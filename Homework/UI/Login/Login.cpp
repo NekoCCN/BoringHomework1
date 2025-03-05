@@ -156,8 +156,7 @@ void LOGIN_handleButtonDown(Login* self, int x, int y)
             self->login_status_ = LOGIN_STATUS_ERROR;
             self->is_done_ = false;
 
-            MATERIALINPUT_setText(self->username_, L"账号或密码错误");
-            MATERIALINPUT_setText(self->password_, L"");
+            MessageBox(getHWnd(), "账号或密码错误", "登入失败", MB_OK);
 
             return;
         }

@@ -18,6 +18,8 @@ typedef struct UserDataStruct
     uint32_t day_;
 
     uint64_t id_;
+
+    bool rent_status_;
 } UserData;
 
 typedef struct UserNodeStruct
@@ -42,15 +44,20 @@ typedef struct UserListIteratorStruct
 
 list* LIST_Construct();
 
-list* LIST_PushBack(list* context, const wchar_t* user_name, const wchar_t* book_name, uint32_t year, uint32_t month, uint32_t day, uint64_t id);
+list* LIST_PushBack(list* context, const wchar_t* user_name, const wchar_t* book_name, 
+    uint32_t year, uint32_t month, uint32_t day, uint64_t id, bool rent_status);
 
-list* LIST_PushFront(list* context, const wchar_t* user_name, const wchar_t* book_name, uint32_t year, uint32_t month, uint32_t day, uint64_t id);
+list* LIST_PushFront(list* context, const wchar_t* user_name, const wchar_t* book_name, 
+    uint32_t year, uint32_t month, uint32_t day, uint64_t id, bool rent_status);
 
 UserNode* LIST_PRIVATE_GetNode(list* context, unsigned index);
 
 UserData LIST_Get(list* context, unsigned index);
 
-list* LIST_Insert(list* context, unsigned index, const wchar_t* user_name, const wchar_t* book_name, uint32_t year, uint32_t month, uint32_t day, uint64_t id);
+UserData* LIST_GetPtr(list* context, unsigned index);
+
+list* LIST_Insert(list* context, unsigned index, const wchar_t* user_name, const wchar_t* book_name, 
+    uint32_t year, uint32_t month, uint32_t day, uint64_t id, bool rent_status);
 
 list* LIST_Delete(list* context, unsigned index);
 

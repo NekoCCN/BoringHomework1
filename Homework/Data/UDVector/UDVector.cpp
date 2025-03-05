@@ -168,6 +168,7 @@ UserData* UDVECTOR_copiedData(UDVector* context, int* size)
         buf[i].month_ = context->data[i].month_;
         buf[i].day_ = context->data[i].day_;
         buf[i].id_ = context->data[i].id_;
+        buf[i].rent_status_ = context->data[i].rent_status_;
 
         // 深拷贝用户名
         if (context->data[i].user_name_)

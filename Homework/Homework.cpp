@@ -52,7 +52,7 @@ int main()
 
     setfont(20, 0, "微软雅黑");
 
-    DataRStream* data = DATARSTREAM_create("data.hwdat");
+    DataRStream* data = DATARSTREAM_create("admin.hwdat", "book.hwdat", "user.hwdat");
     StringSkipList* skip_data = data->data_;
     list* user_data = data->user_list_;
 
@@ -260,7 +260,7 @@ int main()
 
     //ADMINUSER_destroy(admin_user);
 
-    DataWStream* dataw = DATAWSTREAM_create("data.hwdat", false);
+    DataWStream* dataw = DATAWSTREAM_create("admin.hwdat", "book.hwdat", "user.hwdat", false);
     DATAWSTREAM_start(dataw, data->user_, data->user_num_, data->data_, data->user_list_);
     DATAWSTREAM_destory(dataw);
 

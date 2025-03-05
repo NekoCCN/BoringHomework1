@@ -30,11 +30,13 @@ typedef struct ListButton
 
 ListButton* LISTBUTTON_createGrayButton(int left, int top, int right, int bottom, const char* text, int radius);
 
+ListButton* LISTBUTTON_createGrayButton_XYWH(int x, int y, int width, int height, const char* text, int radius);
+
 void LISTBUTTON_draw(ListButton* self);
 
 void LISTBUTTON_handleMouseMove(ListButton* self, int x, int y);
 
-void LISTBUTTON_handleButtonDown(ListButton* self, int x, int y);
+bool LISTBUTTON_handleButtonDown(ListButton* self, int x, int y);
 
 bool LISTBUTTON_isActived(ListButton* self);
 

@@ -8,6 +8,15 @@ ListButton* LISTBUTTON_createGrayButton(int left, int top, int right, int bottom
         false, WHITE, radius, 10); // 默认内边距为 10
 }
 
+ListButton* LISTBUTTON_createGrayButton_XYWH(int x, int y, int width, int height, const char* text, int radius)
+{
+    int left = x;
+    int top = y;
+    int right = x + width;
+    int bottom = y + height;
+    return LISTBUTTON_createGrayButton(left, top, right, bottom, text, radius);
+}
+
 void LISTBUTTON_draw(ListButton* self)
 {
     // 渲染填充色
@@ -64,14 +73,17 @@ void LISTBUTTON_handleMouseMove(ListButton* self, int x, int y)
         }
     }
 }
-void LISTBUTTON_handleButtonDown(ListButton* self, int x, int y)
+bool LISTBUTTON_handleButtonDown(ListButton* self, int x, int y)
 {
     POINT pt = { x, y };
     if (PtInRect(&self->rect_, pt))
     {
         self->is_active_ = true;
         self->current_color_ = self->actived_color_;
+        return true;
     }
+
+    return false;
 }
 
 bool LISTBUTTON_isActived(ListButton* self)

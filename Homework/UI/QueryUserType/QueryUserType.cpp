@@ -41,7 +41,7 @@ QueryUserType* QUERYUSERTYPE_create(int x, int y, int width, int radius)
     int button_left = x + 30;
 
     self->button_entire_ = LISTBUTTON_create(button_left, y, button_left + button_width, y + button_height
-        , "完整名称", background_color, hover_color, active_color, text_color,
+        , "名称", background_color, hover_color, active_color, text_color,
         false, WHITE, radius, padding);
     if (!self->button_entire_)
     {
@@ -50,7 +50,7 @@ QueryUserType* QUERYUSERTYPE_create(int x, int y, int width, int radius)
     }
 
     self->button_bookname_entire_ = LISTBUTTON_create(button_left + button_width + small_spacing, y, button_left + button_width + small_spacing + button_width,
-        y + button_height, "完整书名",
+        y + button_height, "书名",
         background_color, hover_color, active_color, text_color,
         false, WHITE, radius, padding);
     if (!self->button_bookname_entire_)
@@ -60,32 +60,19 @@ QueryUserType* QUERYUSERTYPE_create(int x, int y, int width, int radius)
         return NULL;
     }
 
-    self->button_regex_ = LISTBUTTON_create(button_left + button_width * 2 + small_spacing + big_spacing, y, button_left + button_width * 2 + small_spacing * 1 + button_width + big_spacing,
-        y + button_height, "正则（模糊）",
-        background_color, hover_color, active_color, text_color,
-        false, WHITE, radius, padding);
-    if (!self->button_regex_)
-    {
-        free(self->button_bookname_entire_);
-        free(self->button_entire_);
-        free(self);
-        return NULL;
-    }
-
-    self->button_time_ = LISTBUTTON_create(button_left + button_width * 3 + small_spacing * 2 + big_spacing, y, button_left + button_width * 3 + small_spacing * 2 + button_width + big_spacing,
+    self->button_time_ = LISTBUTTON_create(button_left + button_width * 2 + small_spacing * 1 + big_spacing, y, button_left + button_width * 2 + small_spacing * 1 + button_width + big_spacing,
         y + button_height, "逾期未还",
         background_color, hover_color, active_color, text_color,
         false, WHITE, radius, padding);
     if (!self->button_time_)
     {
-        free(self->button_regex_);
         free(self->button_entire_);
         free(self->button_bookname_entire_);
         free(self);
         return NULL;
     }
 
-    self->button_id_ = LISTBUTTON_create(button_left + button_width * 4 + small_spacing * 3 + big_spacing, y, button_left + button_width * 4 + small_spacing * 3 + button_width + big_spacing,
+    self->button_id_ = LISTBUTTON_create(button_left + button_width * 3 + small_spacing * 2 + big_spacing, y, button_left + button_width * 3 + small_spacing * 2 + button_width + big_spacing,
         y + button_height, "ID",
         background_color, hover_color, active_color, text_color,
         false, WHITE, radius, padding);
@@ -118,7 +105,6 @@ void QUERYUSERTYPE_draw(QueryUserType* self)
     LISTBUTTON_draw(self->button_entire_);
     LISTBUTTON_draw(self->button_id_);
     LISTBUTTON_draw(self->button_time_);
-    LISTBUTTON_draw(self->button_regex_);
 }
 
 void QUERYUSERTYPE_handleMouseMove(QueryUserType* self, int x, int y)
@@ -127,7 +113,6 @@ void QUERYUSERTYPE_handleMouseMove(QueryUserType* self, int x, int y)
     LISTBUTTON_handleMouseMove(self->button_entire_, x, y);
     LISTBUTTON_handleMouseMove(self->button_id_, x, y);
     LISTBUTTON_handleMouseMove(self->button_time_, x, y);
-    LISTBUTTON_handleMouseMove(self->button_regex_, x, y);
 }
 
 void QUERYUSERTYPE_handleButtonDown(QueryUserType* self, int x, int y)
@@ -158,12 +143,6 @@ void QUERYUSERTYPE_handleButtonDown(QueryUserType* self, int x, int y)
         status = QUERYUSER_TYPE_TIME;
     }
 
-    LISTBUTTON_handleButtonDown(self->button_regex_, x, y);
-    if (LISTBUTTON_isActived(self->button_regex_) && self->status_ != QUERYUSER_TYPE_REGEX)
-    {
-        status = QUERYUSER_TYPE_REGEX;
-    }
-
     if (status != self->status_)
     {
         LISTBUTTON_SetStatus(QUERYUSERTYPE_getStatusButton(self), false);
@@ -174,6 +153,13 @@ void QUERYUSERTYPE_handleButtonDown(QueryUserType* self, int x, int y)
 QueryUserTypeButtonType QUERYUSERTYPE_getStatus(QueryUserType* self)
 {
     return self->status_;
+}
+
+void QUERYUSERTYPE_setQueryType(QueryUserType* self, QueryUserTypeButtonType status)
+{
+    LISTBUTTON_SetStatus(QUERYUSERTYPE_getStatusButton(self), false);
+    self->status_ = status;
+    LISTBUTTON_SetStatus(QUERYUSERTYPE_getStatusButton(self), true);
 }
 
 void QUERYUSERTYPE_destroy(QueryUserType* self)

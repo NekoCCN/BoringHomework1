@@ -6,8 +6,8 @@ static ListButton* QUERYTYPE_getStatusButton(QueryType* self)
     {
     case QUERYBOOK_TYPE_BUTTON_ENTIRE:
         return self->button_entire_;
-    case QUERYBOOK_TYPE_BUTTON_REGEX:
-        return self->button_regex_;
+    case QUERYBOOK_TYPE_BUTTON_FUZZY:
+        return self->button_fuzzy_;
     case QUERYBOOK_TYPE_BUTTON_PREFIX:
         return self->button_prefix_;
     case QUERYBOOK_TYPE_BUTTON_ISBN:
@@ -74,11 +74,11 @@ QueryType* QUERYTYPE_create(int x, int y, int width, int radius)
         return NULL;
     }
 
-    self->button_regex_ = LISTBUTTON_create(button_left + button_width * 3 + small_spacing * 2 + big_spacing, y, button_left + button_width * 3 + small_spacing * 2 + button_width + big_spacing,
-        y + button_height, "正则(模糊)",
+    self->button_fuzzy_ = LISTBUTTON_create(button_left + button_width * 3 + small_spacing * 2 + big_spacing, y, button_left + button_width * 3 + small_spacing * 2 + button_width + big_spacing,
+        y + button_height, "模糊查询",
         background_color, hover_color, active_color, text_color,
         false, WHITE, radius, padding);
-    if (!self->button_regex_)
+    if (!self->button_fuzzy_)
     {
         free(self->button_prefix_);
         free(self->button_entire_);
@@ -114,7 +114,7 @@ void QUERYTYPE_draw(QueryType* self)
     LISTBUTTON_draw(self->button_prefix_);
     LISTBUTTON_draw(self->button_entire_);
     LISTBUTTON_draw(self->button_isbn_);
-    LISTBUTTON_draw(self->button_regex_);
+    LISTBUTTON_draw(self->button_fuzzy_);
 }
 
 void QUERYTYPE_handleMouseMove(QueryType* self, int x, int y)
@@ -122,7 +122,7 @@ void QUERYTYPE_handleMouseMove(QueryType* self, int x, int y)
     LISTBUTTON_handleMouseMove(self->button_prefix_, x, y);
     LISTBUTTON_handleMouseMove(self->button_entire_, x, y);
     LISTBUTTON_handleMouseMove(self->button_isbn_, x, y);
-    LISTBUTTON_handleMouseMove(self->button_regex_, x, y);
+    LISTBUTTON_handleMouseMove(self->button_fuzzy_, x, y);
 }
 
 void QUERYTYPE_handleButtonDown(QueryType* self, int x, int y)
@@ -147,10 +147,10 @@ void QUERYTYPE_handleButtonDown(QueryType* self, int x, int y)
         status = QUERYBOOK_TYPE_BUTTON_ISBN;
     }
 
-    LISTBUTTON_handleButtonDown(self->button_regex_, x, y);
-    if (LISTBUTTON_isActived(self->button_regex_) && self->status_ != QUERYBOOK_TYPE_BUTTON_REGEX)
+    LISTBUTTON_handleButtonDown(self->button_fuzzy_, x, y);
+    if (LISTBUTTON_isActived(self->button_fuzzy_) && self->status_ != QUERYBOOK_TYPE_BUTTON_FUZZY)
     {
-        status = QUERYBOOK_TYPE_BUTTON_REGEX;
+        status = QUERYBOOK_TYPE_BUTTON_FUZZY;
     }
 
     if (status != self->status_)
@@ -170,6 +170,6 @@ void QUERYTYPE_destroy(QueryType* self)
     LISTBUTTON_destroy(self->button_prefix_);
     LISTBUTTON_destroy(self->button_entire_);
     LISTBUTTON_destroy(self->button_isbn_);
-    LISTBUTTON_destroy(self->button_regex_);
+    LISTBUTTON_destroy(self->button_fuzzy_);
     free(self);
 }

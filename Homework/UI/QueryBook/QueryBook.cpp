@@ -14,9 +14,9 @@ static MaterialListData* searchResultToMaterialInputData(SearchResult* data, uin
         newdata[i].first_line_ = (char*)malloc(strlen(buffer) + 1);
         strcpy(newdata[i].first_line_, buffer);
 
-        sprintf(buffer, "类别: %ls, 出版社: %ls, 剩余数量: %u, 总数量: %u， %ls",
+        sprintf(buffer, "类别: %ls,  出版社: %ls,  剩余数量: %u,  总数量: %u,  %ls",
             data[i].value.catagory_, data[i].value.publisher_, data[i].value.num_, data[i].value.total_num_
-        , data[i].value.can_rent_ ? L"可租借" : L"不可租借");
+            , data[i].value.can_rent_ ? L"可租借" : L"不可租借");
         newdata[i].second_line_ = (char*)malloc(strlen(buffer) + 1);
         strcpy(newdata[i].second_line_, buffer);
 
@@ -36,9 +36,9 @@ static MaterialListData* searchResultToMaterialInputData(SearchResult* data, uin
 }
 Query* QUERYBOOK_createGrey(int x, int y, int width, int height, StringSkipList* data, LoginStatus status)
 {
-	Query* self = (Query*)malloc(sizeof(Query));
+    Query* self = (Query*)malloc(sizeof(Query));
 
-    self->input_ = MATERIALINPUT_createGrayInput(x + 30, y + height / 10 , width / 2, height / 14, L"输入一些东西吧！");
+    self->input_ = MATERIALINPUT_createGrayInput(x + 30, y + height / 10, width / 2, height / 14, L"输入一些东西吧！");
     self->list_ = MATERIALLIST_createGrayMaterialList(x + 30, y + height / 5, width - 50,
         height - height / 5 - 20, 60, 16);
 
@@ -70,7 +70,7 @@ void QUERYBOOK_draw(Query* self)
         MATERIALINPUT_draw(self->input_);
         MATERIALLIST_draw(self->list_);
         BUTTON_draw(self->search_);
-        
+
         if (self->status_ == LOGIN_STATUS_ADMIN)
         {
             BUTTON_draw(self->update_);
@@ -226,28 +226,26 @@ void QUERYBOOK_handleButtonDown(Query* self, int x, int y, InsertBook* insert, S
                 break;
             }
             // 搬上面的
-            case QUERYBOOK_TYPE_BUTTON_REGEX:
+            case QUERYBOOK_TYPE_BUTTON_FUZZY:
             {
                 int32_t count = 0;
 
-                RegexMatcher* matcher = RegexMatcher::of(MATERIALINPUT_getText(self->input_));
+                SRVECTOR_clear(self->buf_);
 
-                if (matcher == NULL)
+                const wchar_t* str = MATERIALINPUT_getText(self->input_);
+                if (str[0] == L'\0' || str[0] == L'0')
                 {
-                    SRVECTOR_clear(self->buf_);
-                    SearchResult* res = SRVECTOR_copiedData(self->buf_, &count);
-                    MATERIALLIST_setData(self->list_, searchResultToMaterialInputData(res, count), 0);
-                    MATERIALINPUT_setText(self->input_, L"这可不是一个合法的正则表达式哦");
+                    SearchResult* res = STRINGSKIPLIST_getAll(self->data_, &count);
+                    MATERIALLIST_setData(self->list_, searchResultToMaterialInputData(res, count), count);
                     break;
                 }
 
-                SRVECTOR_clear(self->buf_);
                 StringSkipListIterator it = STRINGSKIPLIST_iteratorBegin(self->data_); // 初始化迭代器
 
                 while (!STRINGSKIPLIST_iteratorEnd(&it))
                 {
                     SearchResult data = STRINGSKIPLIST_iteratorGetResult(&it);
-                    if (matcher->isMatch(data.key))
+                    if (kmpSearchWchar(data.key, str))
                     {
                         SRVECTOR_pushBack(self->buf_, data);
                     }
@@ -286,7 +284,7 @@ void QUERYBOOK_handleButtonDown(Query* self, int x, int y, InsertBook* insert, S
             {
                 SearchResult res;
                 STRINGSKIPLIST_searchW(self->data_, MATERIALLIST_getSelectedItem(self->list_).key_, &res);
-                
+
                 wchar_t buf[512];
                 MATERIALINPUT_setText(insert->input_name_, res.key);
                 MATERIALINPUT_setText(insert->input_catagory_, res.value.catagory_);

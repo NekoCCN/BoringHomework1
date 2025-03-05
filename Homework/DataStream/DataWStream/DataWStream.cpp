@@ -1,7 +1,7 @@
 #include "DataWStream.h"
 #include <string.h>
 
-DataWStream* DATAWSTREAM_create(const char* file_name, bool is_append_mode)
+DataWStream* DATAWSTREAM_create(const char* admin_filename, const char* book_filename, const char* user_filename, bool is_append_mode)
 {
     DataWStream* self = (DataWStream*)malloc(sizeof(DataWStream));
     if (!self)
@@ -9,9 +9,11 @@ DataWStream* DATAWSTREAM_create(const char* file_name, bool is_append_mode)
         return NULL;
     }
 
-    self->file_ptr_ = fopen(file_name, "wb");
+    self->admin_file_ptr_ = fopen(admin_filename, "wb");
+    self->book_file_ptr_ = fopen(book_filename, "wb");
+    self->user_file_ptr_ = fopen(user_filename, "wb");
 
-    if (!self->file_ptr_)
+    if (!self->admin_file_ptr_)
     {
         free(self);
         return NULL;
@@ -46,28 +48,28 @@ bool DATAWSTREAM_start(DataWStream* self, User* user, uint32_t user_num, StringS
     }
 
     self->file_header_.user_num = user_num;
-    if (fwrite(&self->file_header_, sizeof(FileHeader), 1, self->file_ptr_) != 1)
+    if (fwrite(&self->file_header_, sizeof(FileHeader), 1, self->admin_file_ptr_) != 1)
     {
         free(skiplist_buffer);
         free(userlist_buffer);
         return false;
     }
 
-    if (fwrite(user, sizeof(User), user_num, self->file_ptr_) != user_num)
+    if (fwrite(user, sizeof(User), user_num, self->admin_file_ptr_) != user_num)
     {
         free(skiplist_buffer);
         free(userlist_buffer);
         return false;
     }
 
-    if (fwrite(skiplist_buffer, 1, skiplist_buffer_size, self->file_ptr_) != skiplist_buffer_size)
+    if (fwrite(skiplist_buffer, 1, skiplist_buffer_size, self->book_file_ptr_) != skiplist_buffer_size)
     {
         free(skiplist_buffer);
         free(userlist_buffer);
         return false;
     }
 
-    if (fwrite(userlist_buffer, 1, userlist_buffer_size, self->file_ptr_) != userlist_buffer_size)
+    if (fwrite(userlist_buffer, 1, userlist_buffer_size, self->user_file_ptr_) != userlist_buffer_size)
     {
         free(skiplist_buffer);
         free(userlist_buffer);
@@ -77,7 +79,9 @@ bool DATAWSTREAM_start(DataWStream* self, User* user, uint32_t user_num, StringS
     free(skiplist_buffer);
     free(userlist_buffer);
 
-    fclose(self->file_ptr_);
+    fclose(self->admin_file_ptr_);
+    fclose(self->book_file_ptr_);
+    fclose(self->user_file_ptr_);
 
     return true;
 }
